@@ -18,37 +18,8 @@
 ## shellcheck disable=2004  ## '$/${} is unnecessary on arithmetic variables.' Inappropriate complaining?
 ## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
 
-
 ##	Module copyright: At bottom of script.
 ##	Module history: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
-
-
-## The following are defined here only for linter support.
-## They are required to be defined first by calling script.
-if [[ -z "${doQuietly+x}" ]]; then
-	declare -i doQuietly
-	declare -i doPromptToContinue
-	declare -i ARGS_AT_LEAST_ONE_IS_REQUIRED
-	declare    THIS_VERSION
-	declare    THIS_BUILD
-	declare    THIS_COPYRIGHT_YEARS
-	declare    THIS_AUTHOR
-	declare    LICENSE_SPDX
-	declare    THIS_FILEPATH
-	declare    THIS_FILENAME
-	declare    THIS_DIRPATH
-	declare    DO_CHAIN_SUDO
-fi
-
-## 	The calling script also should set these environment settings as follows:
-##		set -u  #..................: Require variable declaration. Stronger than mere linting.
-##		set -e  #..................: Exit on errors. This is inconsistent (made a little better with settings below), so eventually may move to 'set +e' (which is more constant work and mental overhead).
-##		set -E  #..................: Propagate ERR trap settings into functions, command substitutions, and subshells.
-##		set   -o pipefail  #.......: Make sure all stages of piped commands also fail the same.
-##		shopt -s inherit_errexit  #: Propagate 'set -e' ........ into functions, command substitutions, and subshells. Will fail on Bash <4.4.
-##		shopt -s dotglob  #........: Include usually-hidden 'dotfiles' in '*' glob operations - usually desired.
-##		shopt -s globstar  #.......: ** matches more stuff including recursion.
-
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## For this module
@@ -59,17 +30,15 @@ if [[ -z "${THIS_LIB_FILE_PATH_t5ht9+x}" ]]; then
 	declare -r THIS_LIB_DIR_PATH_t5hte="$(dirname "${THIS_LIB_FILE_PATH_t5ht9}")" #.....: Replace with native bash function when ready.
 fi
 
-
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## String functions
-
-declare -r BUILD_QUOTED_PARAMS_CHECK_PATTERN=$'[][[:space:]|&;()<>`*?$!~{}\'\"#=,%@\\]'
+[[ -z "${BUILD_QUOTED_PARAMS_CHECK_PATTERN+x}" ]] && declare -r BUILD_QUOTED_PARAMS_CHECK_PATTERN=$'[][[:space:]|&;()<>`*?$!~{}\'\"#=,%@\\]'  ## If an arg has any of these in it, it needs quoting.
 fBuildQuotedParams(){
 	## Given up to 99 arguments following the parent variable to populate, populates that variable with a string, with the original arguments either as-is, or in quotes if they need it.
 	local -n varName_1mtkp9p=$1 ; shift || true  ## First argument is caller's variable to put results in. Remainging <= 99 variables are to put in quoted string.
+	## Build arg string out of remaining args. Note: ${!i}" refers to function arguments.
 	local -i maxIdx=0
-	## Note: ${!i}" refers to function arguments.
-	for i in {1..32}; do [[ -n "${!i}" ]] && maxIdx=$i; done
+	for i in {1..99}; do [[ -n "${!i}" ]] && maxIdx=$i; done
 	for i in $(seq 1 $maxIdx); do
 		((i > 1)) && varName_1mtkp9p="${varName_1mtkp9p} "
 		if [[ "${!i}" =~ ${BUILD_QUOTED_PARAMS_CHECK_PATTERN} ]]; then  varName_1mtkp9p="${varName_1mtkp9p}\"${!i}\""  ## Needs quoting
@@ -79,21 +48,18 @@ fBuildQuotedParams(){
 }
 
 
-
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Script initialization
 
 ## Check if sourced
-declare -i isSourced_t5hte; { (return 0 2>/dev/null) && isSourced_t5hte=1; } || isSourced_t5hte=0
-((! isSourced_t5hte)) && { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
+declare -i isSourced_t5hte=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5hte=1
+((isSourced_t5hte)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
 
-## Validate assumption that n8mod_core_v1 dependency is already loaded
-[[ "${N8MOD_CORE_V1_IS_LOADED}" != "1" ]]  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit 1; }
+## Validate the assumption that required n8mod_core_v1 dependency is already loaded
+[[ "${N8MOD_CORE_V1_IS_LOADED}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit 1; }
 
-## Flag as loaded.
-if [[ -z "${N8MOD_STRING_V1_IS_LOADED+x}" ]]; then
-	declare -r N8MOD_STRING_V1_IS_LOADED=1
-fi
+## Flag this module as loaded.
+[[ -n "${N8MOD_STRING_V1_IS_LOADED+x}" ]] || declare -r N8MOD_STRING_V1_IS_LOADED=1
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
