@@ -18,9 +18,13 @@
 ## shellcheck disable=2004  ## '$/${} is unnecessary on arithmetic variables.' Inappropriate complaining?
 ## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
 
-
-##	Module copyright: At bottom of script.
 ##	Module history: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
+
+##	Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
+##	Licensed under The MIT License (MIT). Full text at:
+##		https://mit-license.org/
+##	SPDX-License-Identifier: MIT
+
 
 ## Bail if already loaded
 [[ "${N8MOD_INTERACT_V1_IS_LOADED:-}" == "1" ]] && return
@@ -30,7 +34,6 @@
 if [[ ! -v doQuietly ]]; then
 	declare -i doQuietly
 	declare -i doPromptToContinue
-	declare -i ARGS_AT_LEAST_ONE_IS_REQUIRED  || :
 	declare    THIS_VERSION                   || :
 	declare    THIS_BUILD                     || :
 	declare    THIS_COPYRIGHT_YEARS           || :
@@ -55,11 +58,13 @@ fi
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Show version, copyright, about, syntax
+
 fShowVersion(){
 	((doQuietly || wasShown_Version)) && return 0
 	fEcho_Clean "${THIS_FILENAME} v${THIS_VERSION} build ${THIS_BUILD}"
 	wasShown_Version=1
 }
+
 fShowCopyright(){
 	((doQuietly || wasShown_Copyright)) && return 0
 	local copyrightStr=""
@@ -67,16 +72,99 @@ fShowCopyright(){
 	copyrightStr+="$(fShowVersion)\n"
 	copyrightStr+="Copyright © ${THIS_COPYRIGHT_YEARS} ${THIS_AUTHOR}.\n"
 	case "${LICENSE_SPDX,,}" in
-		"gpl-2.0-or-later")
+
+		'agpl-3.0')
+			## Strongest copyleft, most restrictive for end-users.
+			## FYI: "Affero" is the name of a now nonexistent company. Main point was to close the SaaS
+			##   loophole in GPLv3.
+			## NOT compatible with Linux kernel code.
+			copyrightStr+="Licensed under the GNU Affero General Public License 3.0. Full text at:\n"
+			copyrightStr+="  https://opensource.org/license/agpl-3-0\n"
+		;;
+
+		'apache-2.0')
+			## Permissive.
+			## Better patent protection than BSD-2-Clause-Patent.
+			## NOT compatible with Linux kernel code (due to patent clause).
+			copyrightStr+="Licensed under the Apache License v2.0. Full text at:\n"
+			copyrightStr+="  https://opensource.org/license/apache-2.0\n"
+		;;
+
+		'bsd-2-clause')
+			## BSD and MIT are the most permissive on this list, with fewest author protections
+			##   than copyleft licenses, but with widest compatibility.
+			## Compatible with Linux kernel code.
+			copyrightStr+="Licensed under The 2-Clause BSD License. Full text at:\n"
+			copyrightStr+="  https://opensource.org/license/bsd-2-clause\n"
+		;;
+
+		'bsd-3-clause')
+			## BSD and MIT are the most permissive on this list, with fewest author protections
+			##   than copyleft licenses, but with widest compatibility.
+			## Better patent protection than BSD-2-Clause-Patent.
+			## NOT compatible with Linux kernel code (due to patent clause).
+			copyrightStr+="Licensed under The 3-Clause BSD License. Full text at:\n"
+			copyrightStr+="  https://opensource.org/license/BSD-3-clause\n"
+		;;
+
+		'gpl-2.0'|'gpl-2.0-only')
+			## Exactly compatible with Linux kernel code (same license).
+			copyrightStr+="Licensed under the GNU General Public License v2.0. Full text at:\n"
+			copyrightStr+="  https://www.gnu.org/licenses/old-licenses/gpl-2.0.html\n"
+		;;
+
+		'gpl-2.0-or-later')
+			## "Or-later" means the recipient can relicense the work to any higher GPL version, e.g. 3.0.
+			## Compatible with Linux kernel code, unless recipient relicenses it to GPL-3.
 			copyrightStr+="Licensed under the GNU General Public License v2.0 or later. Full text at:\n"
 			copyrightStr+="  https://spdx.org/licenses/GPL-2.0-or-later.html\n"
 		;;
+
+		'gpl-3.0'|'gpl-3.0-only')
+			## Strong copyleft.
+			## NOT compatible with Linux kernel code, which is GPL-2.0-only.
+			copyrightStr+="Licensed under the GNU General Public License v3.0. Full text at:\n"
+			copyrightStr+="  https://opensource.org/license/GPL-3.0\n"
+		;;
+
+		'gpl-3.0-or-later')
+			## Strong copyleft.
+			## "Or-later" means the recipient can relicense the work to any higher future GPL version.
+			## NOT compatible with Linux kernel code, which is GPL-2.0-only.
+			copyrightStr+="Licensed under the GNU General Public License v3.0 or later. Full text at:\n"
+			copyrightStr+="  https://spdx.org/licenses/GPL-3.0-or-later.html\n"
+		;;
+
+		'lgpl-3.0')
+			## Weaker copyleft, due to allowance of dynamic linking in commercial software
+			##   (which may be seen as a more flexible advantage for end-users).
+			## NOT compatible with Linux kernel code.
+			copyrightStr+="Licensed under the GNU Lesser General Public License v3.0\n"
+			copyrightStr+="  https://opensource.org/license/lgpl-3-0\n"
+		;;
+
+		'mit')
+			## BSD and MIT are the most permissive on this list, with fewest author protections
+			##   than copyleft licenses, but with widest compatibility.
+			## Compatible with Linux kernel code.
+			copyrightStr+="Licensed under the MIT License (MIT). Full text at:\n"
+			copyrightStr+="  https://mit-license.org/\n"
+		;;
+
+		'mpl-2.0')
+			## Weak copyleft.
+			## Compatible with Linux kernel code, if file lacks "Incompatible With Secondary Licenses" notice.
+			copyrightStr+="Licensed under the Mozilla Public License 2.0\n"
+			copyrightStr+="  https://opensource.org/license/MPL-2.0\n"
+		;;
+
 		*) fThrowError "Sorry, I haven't been programmed yet to display license '${LICENSE_SPDX}'." ;;
 	esac
 	copyrightStr+="No warranty."
 	fEcho_Clean; fEcho_Clean_byref copyrightStr; fEcho_Clean
 	wasShown_Copyright=1
 }
+
 fShowAbout(){
 	((doQuietly || wasShown_About)) && return 0
 	## Validate nameref args:
@@ -89,6 +177,7 @@ fShowAbout(){
 	fEcho_Clean; fEcho_Clean_byref ptr_AboutText_t5j9j; fEcho_Clean
 	wasShown_About=1
 }
+
 fShowSyntax(){
 	((doQuietly || wasShown_Syntax)) && return 0
 	## Validate nameref args:
@@ -109,7 +198,7 @@ fIntroPromptToContinue(){
 	local -r extraInfoString="${1:-}"
 	{ fEcho_Clean; fShowCopyright; fShowAbout_Local; fEcho_Clean; }
 	[[ -n "${extraInfoString}" ]] && { fEcho_Clean; fEcho_Clean "${extraInfoString}"; }
-	fPromptYN "Continue? (y|n): " || { fEcho "User aborted."; return 1; }
+	fPromptYN "Continue? (y|n): " || { fEcho "User aborted."; return ${ERRNUM_CUSTOM_GENERAL}; }
 }
 fPromptYN(){
 	((doQuietly)) && return 0
@@ -117,7 +206,7 @@ fPromptYN(){
 	[[ -z "${promptStr}" ]] && promptStr="Continue? (y|n): "
 	read -r -p "${promptStr}" userAnswer
 	fEcho_ResetBlankCounter
-	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return 1
+	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}
 }
 fPressAnyKeyToContinue(){
 	((doQuietly)) && return 0
@@ -134,15 +223,14 @@ fPressAnyKeyToContinue(){
 
 ## Check if sourced
 declare -i isSourced_t5ja2=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5ja2=1
-((isSourced_t5ja2)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
+((isSourced_t5ja2)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
 ## Validate the assumption that required n8mod_core_v1 dependency is already loaded
-[[ "${N8MOD_CORE_V1_IS_LOADED}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit 1; }
+[[ "${N8MOD_CORE_V1_IS_LOADED}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
 ## Validate this module interface as implemented by consuming script.
 [[ -n "${doQuietly}"                     ]]  ||  fThrowError "The variable 'doQuietly' must be defined by the calling script, for this module to work."
 [[ -n "${doPromptToContinue}"            ]]  ||  fThrowError "The variable 'doPromptToContinue' must be defined by the calling script, for this module to work."
-[[ -n "${ARGS_AT_LEAST_ONE_IS_REQUIRED}" ]]  ||  fThrowError "The constant 'ARGS_AT_LEAST_ONE_IS_REQUIRED' must be defined by the calling script, for this module to work."
 [[ -n "${THIS_VERSION}"                  ]]  ||  fThrowError "The constant 'THIS_VERSION' must be defined by the calling script, for this module to work."
 [[ -n "${THIS_BUILD}"                    ]]  ||  fThrowError "The constant 'THIS_BUILD' must be defined by the calling script, for this module to work."
 [[ -n "${THIS_COPYRIGHT_YEARS}"          ]]  ||  fThrowError "The constant 'THIS_COPYRIGHT_YEARS' must be defined by the calling script, for this module to work."
@@ -158,27 +246,6 @@ fIsFunction fShowSyntax_Local                ||  fThrowError "The function 'fSho
 ## Flag this module as loaded.
 [[ -v N8MOD_INTERACT_V1_IS_LOADED ]] || declare -gr N8MOD_INTERACT_V1_IS_LOADED=1
 
-
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Module Copyright and license:
-##		n8mod_core_v1.1.bash from https://github.com/jim-collier/x9bash5-template
-##		Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
-##		Licenced under GPL v2.0-or-later. No warranty.
-##
-##		SPDX-License-Identifier: GPL-2.0-or-later:
-##
-##		This program is free software: you can redistribute it and/or modify
-##		it under the terms of the GNU General Public License as published by
-##		the Free Software Foundation, either version 2 of the License, or
-##		(at your option) any later version.
-##
-##		This program is distributed in the hope that it will be useful,
-##		but WITHOUT ANY WARRANTY; without even the implied warranty of
-##		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##		GNU General Public License for more details.
-##
-##		You should have received a copy of the GNU General Public License
-##		along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:

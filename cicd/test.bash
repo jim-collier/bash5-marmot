@@ -38,17 +38,17 @@ declare doLongTest=0 ; [[ "${CICDTEST_DO_LONGTEST}" == "1" ]] && doLongTest=1
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## For testing n8_mod_* modules
 
-if [[ ! -v doQuietly ]]; then
-	## Required by this template
-	declare -gri ARGS_AT_LEAST_ONE_IS_REQUIRED=0
-	declare -gri ARGS_MAX_POSITIONAL_COUNT=0
+if [[ ! -v exe1 ]]; then
+	## Setting for this script.
+	## Paths will be evaluated relative to this script's folder.
+	declare exe1="../bin/template.bash"
 fi
 if [[ ! -v THIS_FILEPATH ]]; then
 	## Required by n8mod_core_v1
 	declare -gr  THIS_FILEPATH="$(realpath -e "${0}")"
 	declare -gr  THIS_FILENAME="$(basename "${THIS_FILEPATH}")"
 	declare -gr  THIS_DIRPATH="$(dirname "${THIS_FILEPATH}")"
-	declare -gri DO_CHAIN_SUDO=1  ## Don't have to use
+	declare -gri DO_CHAIN_SUDO=1  ## Only used by fChainToFunction(), which you don't have to use even if this is 1.
 	## Populated by n8mod_core_v1
 	declare -g   SERIAL_DATETIME
 	declare -g   RELAUNCH_SENTINELVAL
@@ -61,41 +61,34 @@ if [[ ! -v THIS_VERSION ]]; then
 	declare -gr THIS_BUILD="1n0pagv"
 	declare -gr THIS_COPYRIGHT_YEARS="2011-2026"
 	declare -gr THIS_AUTHOR="Jim Collier"
-	declare -gr LICENSE_SPDX="GPL-2.0-or-later"   ## Valid so far: GPL-2.0-or-later. Easy to add more.
+	declare -gr LICENSE_SPDX="MIT"
 fi
 
+fShowAbout_Local(){ :; }   ## Required by n8mod_interact_v1
+fShowSyntax_Local(){ :; }  ## Required by n8mod_interact_v1
 
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Logged testing, no interactivity.
+## Runs second in invocations at the bottom of this script, unless fMain_Test_Interactive()
+##   is commented out.
 fMain_Test(){
-
 	fEcho_Clean
-	fEcho_Clean "Ready to test."
-	exit
 
 	## Environment overrides
 	local LANG="C.UTF-8"  ## Splitting won't work correctly without this
-
-	## Resolve paths
-	fResolvePath_v1  exe1       "${exe1}"
 
 	## Variables
 	local inputVal=""  expectVal=""  gotVal=""  tmpVal=""
 	local -i loopCount=0
 
-	####
-	#### Will it even load at all
+	fUnitTest_PrintSectionHeader  "n8mod_number_v1"
 
-	fEcho_Clean
-	fEcho_Clean "Exe source ...: ${exe1}"
-	fEcho_Clean "Version ......: $("${exe1}" --version)"
-	fEcho_Clean_Force
-	sleep 1
-	if ((doComareWith_v2)); then
-		fEcho_Clean "v2 source ....: ${exe2}"
-		fEcho_Clean "Version ......: $("${exe2}" --version)"
-		fEcho_Clean_Force
-		sleep 1
-	fi
+#	fRunTest  '=='  "${expectVal}"  "fIsBool  ${inputVal}  128v1compat"
 
+
+
+return 0
 
 
 	fEcho; fEcho ">>> TESTSECTION: "; fEcho
@@ -115,20 +108,98 @@ fMain_Test(){
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Generic boilerplate
+## Interactive testing, no logging.
+## Runs first in invocations at the bottom of this script, unless commented out.
+fMain_Test_Interactive(){
+	fEcho_Clean
+
+	## Environment overrides
+	local -r LANG="C.UTF-8"  ## Splitting won't work correctly without this
+
+	## Variables
+	local -i retVal=0
+
+	## Test these settings combos enabled one at a time, then comment out once all pass.
+#	fError_DefineTrap_Fatal  ; fError_DefineBehavior_Return
+#	fError_DefineTrap_Fatal  ; fError_DefineBehavior_Exit
+	fError_DefineTrap_Ignore ; fError_DefineBehavior_Return  ## Will ignore errors, but not explicit `exit`.
+#	fError_DefineTrap_Ignore ; fError_DefineBehavior_Exit    ## fError_DefineBehavior_Exit() is overridden, if also ignoring errors.
+	## Test these error triggers one at a time, then comment out once all pass.
+	fEcho_Clean "Hit CTRL+C to test user break ..."; fEcho_IsInRawInlineMode_Set 1; for i in {1..10}; do sleep 1; echo -n "${i} "; done; :
+#	rsync /DOESNT_EXIST/bogus
+#	rsync /DOESNT_EXIST/bogus 2>/dev/null #.................................: Should not show any extra lines at all, swallow rsync error, but still show error handler text.
+#	rsync /DOESNT_EXIST/bogus 2>/dev/null || true #.........................: Should look like nothing happened, even with `fError_DefineTrap_Fatal`.
+#	fThrowError "This is a test fThrowError message."
+#	fThrowError "This is a test fThrowError message." 2>/dev/null
+#	return 0
+# 	return 1
+#	return $ERRNUM_CUSTOM_GENERAL #...: Ditto `exit $ERRNUM_CUSTOM_GENERAL` note above.
+#	exit #............................: Can't ignore a explicit exit.
+#	exit 1
+#	exit $ERRNUM_CUSTOM_GENERAL #.....: Should not show detailed error message. This is what a custom error message should exit with. [And what fThrowError() uses.]
+#	exit 200
+
+	####
+	#### Will it even load at all
+
+	fEcho_Clean
+	fEcho_Clean "Exe source ...: ${exe1}"
+	fEcho_Clean "Version ......: $("${exe1}" --version)"
+	fEcho_Clean_Force
+	sleep 1
+
+	## Test template.bash fMain user prompt
+	fEcho_Clean "Executing '${exe1}'"
+	fEcho_Clean "  with no args, to test template's fShowVersion(), fShowCopyright(), fShowAbout(), fShowSyntax(), fMain(), and fCleanup();"
+	fEcho_Clean "  and interactive prompt to continue."
+	fEcho_Clean
+	fEcho_Clean ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+#	set +e ; "${exe1}"; retVal=$? ; : ; set -e
+	fEcho_Clean "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	fEcho_Clean
+	fEcho_Clean "Script return value: ${retVal} (user chose to $( if ((retVal==0)); then echo "continue"; else echo "abort"; fi ))."
+	fEcho_Clean
+	fEcho_Clean "Continuing with tests ..."
+
+	## Test n8mod_interact_v1 functions
+	fEcho_Clean "Going to test n8mod_interact_v1.fPressAnyKeyToContinue() ...."
+	fEcho_Clean
+	fEcho_Clean ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+#	fPressAnyKeyToContinue
+	fEcho_Clean "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+	fEcho_Clean
+
+}
+
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Generic boilerplate in every script
+
+fLoadModule_v1(){
+	## Purpose: Loads a module by name.
+	## E.g.: fLoadModule_v1  'n8mod_core_v1'
+	local -r arg_ModuleName="${1:-}"  # ; shift || :  ## Module name
+	local resolvedPath
+	fResolvePath_v1  resolvedPath  "${arg_ModuleName}"
+	# shellcheck source=/dev/null
+	[[ -f "${resolvedPath}" ]] && source "${resolvedPath}"
+		## Note that since we're source'ing inside a function, and regular 'declare' in global
+		## scope within those modules, will actually be local scope to this function. The fix
+		## is to just idiomatically always declare global variables/constants with `-g`.
+:;}
 
 fResolvePath_v1(){
 	## Purpose: Resolves an argument to a canonical full path, while being careful to not be too broad as to resolve to something else with the same name.
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
 	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return 1; }
+	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_CUSTOM_GENERAL}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
 	local -i mustExist=${1:-1}                 ; shift || :  ## 1 [default]: path must exist or error occurs. 0: Just rationalize paths, doesn't have to exist.
 	## Validate
-	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return 1; }
+	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
 	## Init
 	ref_Return_ResolvedPath_t4rej=""
 	## Obvious test, as-is
@@ -149,14 +220,18 @@ fResolvePath_v1(){
 	testPath="${nameOrPath}"
 	if ((mustExist)); then
 		testPath="$(realpath -e "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return 1; }
+		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
 	else
 		testPath="$(realpath -m "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return 1; }
+		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
 	fi
 	## Success
 	ref_Return_ResolvedPath_t4rej="${testPath}"
 }
+
+
+#••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Script entry point
 
 ## Bash environment settings
  set -u  #..................: Require variable declaration. Stronger than mere linting.
@@ -169,40 +244,68 @@ fResolvePath_v1(){
 
 ## Check if sourced
 declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5ja1=1
-#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
-{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit 1; }
+#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
-
-#••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-# Entry point
-#••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-
-if [[ -z "${meName_t4rgd+x}" ]]; then
-	declare -r mePath_t4rgd="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -r meName_t4rgd="$(basename "${mePath_t4rgd}")"
-	declare -r meDir_t4rgd="$(dirname "${mePath_t4rgd}")"
-	declare -r serialDT_t4rgd="$(date "+%Y%m%d-%H%M%S")"
-fi
-
-## Make sure relative paths work
-cd "${meDir_t4rgd}"
+## Make sure definitions for paths relative to this script work,
+##   by making sure we're evaluating from it.
+cd "${THIS_DIRPATH}"
 
 ## Source the generic script 'utility/n8test'.
 declare n8test_resolved="utility/include/n8lib_test"
 fResolvePath_v1  n8test_resolved  "${n8test_resolved}" ; readonly n8test_resolved
 [[ -n "${n8test_resolved}" ]] && source "${n8test_resolved}"
 
-## Source the generic template
-declare mainTemplate="../bin/template.bash"
-fResolvePath_v1  mainTemplate  "${mainTemplate}" ; readonly mainTemplate
-[[ -n "${mainTemplate}" ]] && source "${mainTemplate}" --unit-test
+## Load required core module
+## Load before `exe1`, because the flags will prevent them from being reloaded, and we want our dev versions loaded.
+[[ -v N8MOD_CORE_V1_IS_LOADED ]] || fLoadModule_v1  '../bin/include/n8mod_core_v1'
+
+## Optional modules as needed
+	[[ -v N8MOD_CORE_V1_IS_LOADED       ]] || fLoadModule_v1  '../bin/include/n8mod_core_v1'
+	[[ -v N8MOD_INTERACT_V1_IS_LOADED   ]] || fLoadModule_v1  '../bin/include/n8mod_interact_v1'
+	[[ -v N8MOD_STRING_V1_IS_LOADED     ]] || fLoadModule_v1  '../bin/include/n8mod_string_v1'
+	[[ -v N8MOD_NUMBER_V1_IS_LOADED     ]] || fLoadModule_v1  '../bin/include/n8mod_number_v1'
+	[[ -v N8MOD_FILESYS_V1_IS_LOADED    ]] || fLoadModule_v1  '../bin/include/n8mod_filesys_v1'
+	[[ -v N8MOD_PROCESS_V1_IS_LOADED    ]] || fLoadModule_v1  '../bin/include/n8mod_process_v1'
+	[[ -v N8MOD_LOGGING_V1_IS_LOADED    ]] || fLoadModule_v1  '../bin/include/n8mod_logging_v1'
+	[[ -v N8MOD_UNITTEST_V1_IS_LOADED   ]] || fLoadModule_v1  '../bin/include/n8mod_unittest_v1'
+#	[[ -v N8MOD_ARRAY_V1_IS_LOADED      ]] || fLoadModule_v1  '../bin/include/n8mod_array_v1'
+#	[[ -v N8MOD_OOP_V1_IS_LOADED        ]] || fLoadModule_v1  '../bin/include/n8mod_oop_v1'
+#	[[ -v N8MOD_ZFS_V1_IS_LOADED        ]] || fLoadModule_v1  '../bin/include/n8mod_zfs_v1'
+#	[[ -v N8MOD_BTRFS_V1_IS_LOADED      ]] || fLoadModule_v1  '../bin/include/n8mod_btrfs_v1'
+#	[[ -v N8MOD_SQL_V1_IS_LOADED        ]] || fLoadModule_v1  '../bin/include/n8mod_sql_v1'
+#	[[ -v N8MOD_SQLITE3_V1_IS_LOADED    ]] || fLoadModule_v1  '../bin/include/n8mod_sqlite3_v1'
+#	[[ -v N8MOD_POSTGRESQL_V1_IS_LOADED ]] || fLoadModule_v1  '../bin/include/n8mod_postgresql_v1'
+
+## Source the generic template.
+## Do this AFTER sourcing modules, because we want to source the modules being developed,
+##   not the stable ones in $PATH.
+fResolvePath_v1  exe1  "${exe1}" ; readonly exe1
+[[ -n "${exe1}" ]] && source "${exe1}" --unit-test
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## This is always triggered once by n8mod_core_v1 code, on final script exit,
+##   whether due to normal script completion, or early exit due to error.
+## Only put critical cleanup here, and/or final stdout message independent of
+##   reason for exit.
+## Define after loading $exe1, so that this definition wins.
+fCleanup(){
+	notify-send "Title" "${BASH_SOURCE[0]}.${FUNCNAME[0]}(): Ran."  ##DEBUG
+	if ((! doQuietly)); then :
+		fEcho_Clean
+	fi
+}
 
 ## Initialize logging (fPipe_LogAndShowPartialOutput_InitLogfile() is defined in 'n8test')
-declare logFile="${mePath_t4rgd%.*}.log"
+declare logFile="${THIS_FILEPATH%.*}.log"
 fResolvePath_v1  logFile    "${logFile}"  0
 fPipe_LogAndShowPartialOutput_InitLogfile "${logFile}"
 
-## Kick off testing (functions are defined in 'n8test')
+## Run interactive tests.
+## Ran several times 20260521, commenting out for automation.
+fMain_Test_Interactive
+
+## Kick off logged testing (this will cause fMain_Test() to run).
 fEntryPoint | fPipe_LogAndShowPartialOutput
 
 

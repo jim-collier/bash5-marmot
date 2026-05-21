@@ -261,13 +261,13 @@ fResolvePath_v1(){
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
 	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return 1; }
+	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_CUSTOM_GENERAL}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
 	local -i mustExist=${1:-1}                 ; shift || :  ## 1 [default]: path must exist or error occurs. 0: Just rationalize paths, doesn't have to exist.
 	## Validate
-	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return 1; }
+	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
 	## Init
 	ref_Return_ResolvedPath_t4rej=""
 	## Obvious test, as-is
@@ -288,18 +288,18 @@ fResolvePath_v1(){
 	testPath="${nameOrPath}"
 	if ((mustExist)); then
 		testPath="$(realpath -e "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return 1; }
+		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
 	else
 		testPath="$(realpath -m "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return 1; }
+		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
 	fi
 	## Success
 	ref_Return_ResolvedPath_t4rej="${testPath}"
 }
 fDoesDirHaveContents(){
 	[[   -z "${1}" ]]  &&  fThrowError  "No directory specified as arg 1."  "fDoesDirHaveContents"
-	[[ ! -d "${1}" ]]                                     && return 1
-	[[   -z "$(ls -1A "${1%%/}/" 2>/dev/null || true)" ]] && return 1
+	[[ ! -d "${1}" ]]                                     && return ${ERRNUM_CUSTOM_GENERAL}
+	[[   -z "$(ls -1A "${1%%/}/" 2>/dev/null || true)" ]] && return ${ERRNUM_CUSTOM_GENERAL}
 	return 0; }
 fBuildQuotedParams(){
 	local -n varName_1mtkp9p=$1 ; shift || true
@@ -312,31 +312,31 @@ fRunGUI(){ #( (nohup "$*" &>/dev/null) & disown);
 	( (eval "'${toExec}'  ${quotedParams}  &>/dev/null") & disown ) &>/dev/null; }
 fRunGuiAsSudo(){
 	local -r toExec="${1:-}"  ## Only used for testing validity. When executed, it's just another "parameter".
-	[[ -z "${toExec}" ]]                                                                &&  { echo -e "\nError in '$(basename "${0}").${FUNCNAME[0]}.()': No GUI executable specified to run. \n"                          ; exit 1; }
-	{ [[ ! -x "${toExec}" ]] && [[ -z "$(which "${toExec}" 2>/dev/null || true)" ]]; }  &&  { echo -e "\nError in '$(basename "${0}").${FUNCNAME[0]}.()': Cannot find executable explicitly or in \$PATH: '${toExec}'. \n" ; exit 1; }
+	[[ -z "${toExec}" ]]                                                                &&  { echo -e "\nError in '$(basename "${0}").${FUNCNAME[0]}.()': No GUI executable specified to run. \n"                          ; exit ${ERRNUM_CUSTOM_GENERAL}; }
+	{ [[ ! -x "${toExec}" ]] && [[ -z "$(which "${toExec}" 2>/dev/null || true)" ]]; }  &&  { echo -e "\nError in '$(basename "${0}").${FUNCNAME[0]}.()': Cannot find executable explicitly or in \$PATH: '${toExec}'. \n" ; exit ${ERRNUM_CUSTOM_GENERAL}; }
 	local quotedParams=""; fBuildQuotedParams  quotedParams   "${@}"
 	sudo true; ( (eval "sudo  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus XDG_RUNTIME_DIR=/run/user/0  ${quotedParams}  &>/dev/null") & disown ) &>/dev/null; }
 fMustBeInPath(){
 	##	Unit tests passed on: 20250704.
 	local -r programToCheckForInPath="${1:-}"
 	if [[ -z "${programToCheckForInPath}" ]]; then
-		fThrowError "Not program specified."  "${FUNCNAME[0]}"; return 1
+		fThrowError "Not program specified."  "${FUNCNAME[0]}"; return ${ERRNUM_CUSTOM_GENERAL}
 	elif [[ -z "$(which ${programToCheckForInPath} 2>/dev/null || true)" ]]; then
-		fThrowError "Not found in path: ${programToCheckForInPath}"; return 1
+		fThrowError "Not found in path: ${programToCheckForInPath}"; return ${ERRNUM_CUSTOM_GENERAL}
 	fi ;:;}
 fIntroPromptToContinue(){
 	{ ((doQuietly)) || ((! doPromptToContinue)); } && return 0
 	local -r extraInfoString="${1:-}"
 	{ fEcho_Clean; fCopyright; fAbout; fEcho_Clean; }
 	[[ -n "${extraInfoString}" ]]  &&  { fEcho_Clean; fEcho_Clean "${extraInfoString}"; }
-	fPromptYN "Continue? (y|n): "  ||  { fEcho "User aborted."; return 1; }; }
+	fPromptYN "Continue? (y|n): "  ||  { fEcho "User aborted."; return ${ERRNUM_CUSTOM_GENERAL}; }; }
 fPromptYN(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
 	[[ -z "${promptStr}" ]] && promptStr="Continue? (y|n): "
 	read -r -p "${promptStr}" userAnswer
 	fEcho_ResetBlankCounter
-	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return 1; }
+	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
 fPressAnyKeyToContinue(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
@@ -362,7 +362,7 @@ _fSingleExitPoint(){
 		echo "User interrupted." >&2
 		fEcho_ResetBlankCounter
 		fCleanup  ## User cleanup
-		exit 1
+		exit ${ERRNUM_CUSTOM_GENERAL}
 	elif [[ "${exitCode}" != "0" ]] && [[ "${exitCode}" != "1" ]]; then  ## Clunky string compare is less likely to fail than integer
 		fEcho_Clean
 		echo -e "Signal .....: '${signal}'"      >&2
@@ -387,7 +387,7 @@ _fTrap_Error(){
 		_fSingleExitPoint "${@}"
 	fi ;}
 _fTrap_Error_Ignore(){ _ErrVal=1; true;  return 0; }
-_fTrap_Error_Soft(){   _ErrVal=1; false; return 1; }
+_fTrap_Error_Soft(){   _ErrVal=1; false; return ${ERRNUM_CUSTOM_GENERAL}; }
 fThrowError(){
 	local errMsg="${1:-}"         ; [[ -z "${errMsg}"      ]] && errMsg="An error occurred."
 	local meNameLocal="${meName}" ; [[ -n "${meNameLocal}" ]] && errMsg="${meNameLocal}: ${errMsg}"
@@ -399,7 +399,7 @@ fThrowError(){
 	[[ -n "${callStack}" ]] && callStack="Reverse call stack: ${callStack}"
 	fEcho_Clean; echo -e "${errMsg}\n${callStack}" >&2; fEcho_ResetBlankCounter
 	_ErrVal=1
-	{ ((_doExitOnThrow)) && exit 1; } || return 1; }
+	{ ((_doExitOnThrow)) && exit ${ERRNUM_CUSTOM_GENERAL}; } || return ${ERRNUM_CUSTOM_GENERAL}; }
 fDefineTrap_Error_Fatal(){        :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error         ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Standard; exits script on any caught error; but 'set -e' has known inconsistencies catching or ignoring errors.
 fDefineTrap_Error_ExitOnThrow(){  :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error         ERR    ${LINENO}  $?  $_' ERR; set +e; } ## Only exits script on fThrowError().
 fDefineTrap_Error_Soft(){         :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error_Soft    ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Returns error code of 1 on error.
@@ -418,9 +418,9 @@ declare -gi _wasLastEchoBlank=0
 declare -gi _isEchoInRawInlineMode=0
 fEcho_ResetBlankCounter()     { _wasLastEchoBlank=0;      }
 fEcho_WasLastEchoBlank_Set()  { { [[ "${1:-}" == "1" ]] && _wasLastEchoBlank=1; } || _wasLastEchoBlank=0;  }
-fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return 1; }
+fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
 fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || { _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; echo; }; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
-fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return 1; }
+fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
 fEcho_Clean_byref(){
 	## Validate nameref args:
 	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."

@@ -19,14 +19,18 @@
 ## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
 
 ##	Purpose: See fShowAbout_Local() below.
-##	Template copyright: At bottom of script.
 ##	History: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
+
+##	Template Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
+##	Licensed under The MIT License (MIT). Full text at:
+##		https://mit-license.org/
+##	SPDX-License-Identifier: MIT
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module settings and constants
 
-if [[ ! -v doQuietly ]]; then
+if [[ ! -v ARGS_AT_LEAST_ONE_IS_REQUIRED ]]; then
 	## Required by this template
 	declare -gri ARGS_AT_LEAST_ONE_IS_REQUIRED=0
 	declare -gri ARGS_MAX_POSITIONAL_COUNT=0
@@ -36,7 +40,7 @@ if [[ ! -v THIS_FILEPATH ]]; then
 	declare -gr  THIS_FILEPATH="$(realpath -e "${0}")"
 	declare -gr  THIS_FILENAME="$(basename "${THIS_FILEPATH}")"
 	declare -gr  THIS_DIRPATH="$(dirname "${THIS_FILEPATH}")"
-	declare -gri DO_CHAIN_SUDO=1  ## Don't have to use
+	declare -gri DO_CHAIN_SUDO=1  ## Only used by fChainToFunction(), which you don't have to use even if this is 1.
 	## Populated by n8mod_core_v1
 	declare -g   SERIAL_DATETIME
 	declare -g   RELAUNCH_SENTINELVAL
@@ -49,11 +53,12 @@ if [[ ! -v THIS_VERSION ]]; then
 	declare -gr THIS_BUILD="1n0pagv"
 	declare -gr THIS_COPYRIGHT_YEARS="2011-2026"
 	declare -gr THIS_AUTHOR="Jim Collier"
-	declare -gr LICENSE_SPDX="GPL-2.0-or-later"   ## Valid so far: GPL-2.0-or-later
+	declare -gr LICENSE_SPDX="MIT"
 fi
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Interface required by n8mod_interact_v1.
 fShowAbout_Local(){
 	local aboutStr=""
 	#         X-------------------------------------------------------------------------------X
@@ -65,6 +70,7 @@ fShowAbout_Local(){
 }
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Interface required by n8mod_interact_v1.
 fShowSyntax_Local(){
 	local syntaxStr=""
 	#          X-------------------------------------------------------------------------------X
@@ -82,17 +88,15 @@ fShowSyntax_Local(){
 fMain(){ :;
 
 	## Settings
-	local ogUSER="" ; fGetOgUserName ogUSER             ; readonly ogUSER  ## Not required by anything in template.
-	local ogHOME="" ; fGetOgUserHome ogHOME "${ogUSER}" ; readonly ogHOME  ## Not required by anything in template.
+	local ogUSER="" ; fGetOgUserName ogUSER             ; readonly ogUSER  ## Not required by anything in template, but could be handy - e.g. if using fChainToFunction().
+	local ogHOME="" ; fGetOgUserHome ogHOME "${ogUSER}" ; readonly ogHOME  ## Not required by anything in template, but could be handy - e.g. if using fChainToFunction().
 
-	## Pre-arg validation
+	## Pre-arg parsing validation
 
 	## Arguments
-	local -a allArgsArr=()
 	fParseArgs  "${@}"
-	readonly allArgsArr
 
-	## Post-arg validation
+	## Post-arg parsing validation
 
 	## Prompt to continue
 	if ((! doQuietly)); then
@@ -104,23 +108,25 @@ fMain(){ :;
 		fEcho_Clean
 	fi
 
-	## Done; either fChainToFunc() -> fMain_Chained() returned, or this script run in a sudo subshell [running only fMain_Chained()] returned.
+	## fChainToFunction  'fMain_Chained'  "$(declare -p  doQuietly  ogUSER  ogHOME)"
+
+	## Done; either fChainToFunction() -> fMain_Chained() returned, or this script run in a sudo subshell [running only fMain_Chained()] returned.
 	((! doQuietly)) && { fEcho; fEcho "Done."; fEcho; }
 }
 
 
 #••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 fMain_Chained(){
-	## Only needed this function, if $DO_CHAIN_SUDO==1, and you intend to invoke `fChainToFunc 'fMain_Chained'` in fMain().
+	## Only needed this function, if $DO_CHAIN_SUDO==1, and you intend to invoke `fChainToFunction 'fMain_Chained'` in fMain().
 	## Example invocation:
-	##	fChainToFunc  'fMain_Chained'  "$(declare -p  doQuietly  ogUSER  ogHOME)"
+	##	fChainToFunction  'fMain_Chained'  "$(declare -p  doQuietly  ogUSER  ogHOME)"
 	[[ -n "${1:-}" ]] && eval "${1:-}"  ## Restore caller's serialized variables [or fArgs_*]. New scope is local to this function.
 	((! doQuietly)) && fEcho_Clean
 
 	## Revalidate
-	[[   -z "${doQuietly}" ]]                && { fThrowError "Arg not set: doQuietly" ; return 1; }
-	[[   -z "${ogUSER}" ]]                   && { fThrowError "Arg not set: ogUSER" ; return 1; }
-	[[   -z "${ogHOME}" ]]                   && { fThrowError "Arg not set: ogHOME" ; return 1; }
+	[[   -z "${doQuietly}" ]]                && { fThrowError "Arg not set: doQuietly" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[   -z "${ogUSER}" ]]                   && { fThrowError "Arg not set: ogUSER" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[   -z "${ogHOME}" ]]                   && { fThrowError "Arg not set: ogHOME" ; return ${ERRNUM_CUSTOM_GENERAL}; }
 
 }
 
@@ -137,7 +143,7 @@ fParseArgs(){
 	esac
 
 	## Check for need to show help
-	((ARGS_AT_LEAST_ONE_IS_REQUIRED  &&  $# <= 0)) && { fShowCopyright; fShowAbout_Local; fShowSyntax_Local; return 1; }
+	((ARGS_AT_LEAST_ONE_IS_REQUIRED  &&  $# <= 0)) && { fShowCopyright; fShowAbout_Local; fShowSyntax_Local; return ${ERRNUM_CUSTOM_GENERAL}; }
 
 	## GENERIC: Variables for loop
 	local -ri MAX_EMPTY_SEQUENTIAL_ARGS=10  ## Bail after this many consecutive empty args
@@ -154,12 +160,12 @@ fParseArgs(){
 		#fEcho_Clean "Debug: currentArg ........: '${currentArg}'"
 
 		## Track consecutive empty args, bail if too many.
+		## Other than that, there is no upper limit on the number of arguments.
 		if [[ -z "${currentArg}" ]]; then
 			(( ++emptyRunCount ))
 			(( emptyRunCount >= MAX_EMPTY_SEQUENTIAL_ARGS )) && break
 			continue  ## If empty but not bailing, skip to next
-		else
-			emptyRunCount=0
+		else emptyRunCount=0
 		fi
 
 		## Sanitize quotes
@@ -231,8 +237,13 @@ fParseArgs(){
 :;}
 
 
-#••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## This is always triggered once by n8mod_core_v1 code, on final script exit,
+##   whether due to normal script completion, or early exit due to error.
+## Only put critical cleanup here, and/or final stdout message independent of
+##   reason for exit.
 fCleanup(){
+	notify-send "Title" "${BASH_SOURCE[0]}.${FUNCNAME[0]}(): Ran."  ##DEBUG
 	if ((! doQuietly)); then
 		fEcho_Clean
 	fi
@@ -274,13 +285,13 @@ fResolvePath_v1(){
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
 	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return 1; }
+	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_CUSTOM_GENERAL}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
 	local -i mustExist=${1:-1}                 ; shift || :  ## 1 [default]: path must exist or error occurs. 0: Just rationalize paths, doesn't have to exist.
 	## Validate
-	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return 1; }
+	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
 	## Init
 	ref_Return_ResolvedPath_t4rej=""
 	## Obvious test, as-is
@@ -301,14 +312,18 @@ fResolvePath_v1(){
 	testPath="${nameOrPath}"
 	if ((mustExist)); then
 		testPath="$(realpath -e "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return 1; }
+		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
 	else
 		testPath="$(realpath -m "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return 1; }
+		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
 	fi
 	## Success
 	ref_Return_ResolvedPath_t4rej="${testPath}"
 }
+
+
+#••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Script entry point
 
 ## Bash environment settings
  set -u  #..................: Require variable declaration. Stronger than mere linting.
@@ -321,49 +336,31 @@ fResolvePath_v1(){
 
 ## Check if sourced
 declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5ja1=1
-#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
-{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit 1; }
+#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
-## Load modules
-	[[ -v N8MOD_CORE_V1_IS_LOADED       ]] || fLoadModule_v1  'n8mod_core_v1'
-	[[ -v N8MOD_INTERACT_V1_IS_LOADED   ]] || fLoadModule_v1  'n8mod_interact_v1'
-	[[ -v N8MOD_STRING_V1_IS_LOADED     ]] || fLoadModule_v1  'n8mod_string_v1'
-#	[[ -v N8MOD_NUMBER_V1_IS_LOADED     ]] || fLoadModule_v1  'n8mod_number_v1'
-#	[[ -v N8MOD_FILESYS_V1_IS_LOADED    ]] || fLoadModule_v1  'n8mod_filesys_v1'
-#	[[ -v N8MOD_PROCESS_V1_IS_LOADED    ]] || fLoadModule_v1  'n8mod_process_v1'
-#	[[ -v N8MOD_LOGGING_V1_IS_LOADED    ]] || fLoadModule_v1  'n8mod_logging_v1'
-#	[[ -v N8MOD_ARRAY_V1_IS_LOADED      ]] || fLoadModule_v1  'n8mod_array_v1'
-#	[[ -v N8MOD_OOP_V1_IS_LOADED        ]] || fLoadModule_v1  'n8mod_oop_v1'
-#	[[ -v N8MOD_ZFS_V1_IS_LOADED        ]] || fLoadModule_v1  'n8mod_zfs_v1'
-#	[[ -v N8MOD_BTRFS_V1_IS_LOADED      ]] || fLoadModule_v1  'n8mod_btrfs_v1'
-#	[[ -v N8MOD_SQL_V1_IS_LOADED        ]] || fLoadModule_v1  'n8mod_sql_v1'
-#	[[ -v N8MOD_SQLITE3_V1_IS_LOADED    ]] || fLoadModule_v1  'n8mod_sqlite3_v1'
-#	[[ -v N8MOD_POSTGRESQL_V1_IS_LOADED ]] || fLoadModule_v1  'n8mod_postgresql_v1'
+## Load required core module
+[[ -v N8MOD_CORE_V1_IS_LOADED ]] || fLoadModule_v1  'n8mod_core_v1'
+
+## Optional modules as needed
+	[[ -v N8MOD_INTERACT_V1_IS_LOADED   ]]  || fLoadModule_v1  'n8mod_interact_v1'
+	[[ -v N8MOD_STRING_V1_IS_LOADED     ]]  || fLoadModule_v1  'n8mod_string_v1'
+#	[[ -v N8MOD_NUMBER_V1_IS_LOADED     ]]  || fLoadModule_v1  'n8mod_number_v1'
+#	[[ -v N8MOD_ARRAY_V1_IS_LOADED      ]]  || fLoadModule_v1  'n8mod_array_v1'
+#	[[ -v N8MOD_FILESYS_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_filesys_v1'
+#	[[ -v N8MOD_PROCESS_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_process_v1'
+#	[[ -v N8MOD_LOGGING_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_logging_v1'
+#	[[ -v N8MOD_UNITTEST_V1_IS_LOADED   ]] || fLoadModule_v1  'n8mod_unittest_v1'
+#	[[ -v N8MOD_OOP_V1_IS_LOADED        ]]  || fLoadModule_v1  'n8mod_oop_v1'
+#	[[ -v N8MOD_ZFS_V1_IS_LOADED        ]]  || fLoadModule_v1  'n8mod_zfs_v1'
+#	[[ -v N8MOD_BTRFS_V1_IS_LOADED      ]]  || fLoadModule_v1  'n8mod_btrfs_v1'
+#	[[ -v N8MOD_SQL_V1_IS_LOADED        ]]  || fLoadModule_v1  'n8mod_sql_v1'
+#	[[ -v N8MOD_SQLITE3_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_sqlite3_v1'
+#	[[ -v N8MOD_POSTGRESQL_V1_IS_LOADED ]]  || fLoadModule_v1  'n8mod_postgresql_v1'
 
 ## Kick everything off (unless unit-testing)
 [[ "${1:-}" == '--unit-test' ]] || fInit "${@}"
 
-
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Copyright and license:
-##		template.bash from https://github.com/jim-collier/x9bash5-template
-##		Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
-##		Licenced under GPL v2.0-or-later. No warranty.
-##
-##		SPDX-License-Identifier: GPL-2.0-or-later:
-##
-##		This program is free software: you can redistribute it and/or modify
-##		it under the terms of the GNU General Public License as published by
-##		the Free Software Foundation, either version 2 of the License, or
-##		(at your option) any later version.
-##
-##		This program is distributed in the hope that it will be useful,
-##		but WITHOUT ANY WARRANTY; without even the implied warranty of
-##		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##		GNU General Public License for more details.
-##
-##		You should have received a copy of the GNU General Public License
-##		along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## History:

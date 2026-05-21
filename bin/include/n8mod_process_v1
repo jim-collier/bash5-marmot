@@ -18,8 +18,13 @@
 ## shellcheck disable=2004  ## '$/${} is unnecessary on arithmetic variables.' Inappropriate complaining?
 ## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
 
-##	Module copyright: At bottom of script.
 ##	Module history: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
+
+##	Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
+##	Licensed under The MIT License (MIT). Full text at:
+##		https://mit-license.org/
+##	SPDX-License-Identifier: MIT
+
 
 ## Bail if already loaded
 [[ "${N8MOD_PROCESS_V1_IS_LOADED:-}" == "1" ]] && return
@@ -67,10 +72,10 @@ fRunGuiAsSudo(){
 
 ## Check if sourced
 declare -i isSourced_t5jhk=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5jhk=1
-((isSourced_t5jhk)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
+((isSourced_t5jhk)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
 ## Validate the assumption that required n8mod_core_v1 dependency is already loaded
-[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit 1; }
+[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
 ## Validate this module interface as implemented by consuming script.
 #[[ -n "${THIS_FILEPATH:-}" ]]  ||  fThrowError "The constant 'THIS_FILEPATH' must be defined by the parent script, for this module to work."
@@ -84,27 +89,6 @@ fIsFunction fLoadModule_v1      ||  fThrowError "The function 'fLoadModule_v1' m
 ## Flag this module as loaded.
 [[ -v N8MOD_PROCESS_V1_IS_LOADED ]] || declare -gr N8MOD_PROCESS_V1_IS_LOADED=1
 
-
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Module Copyright and license:
-##		n8mod_core_v1.1.bash from https://github.com/jim-collier/x9bash5-template
-##		Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
-##		Licenced under GPL v2.0-or-later. No warranty.
-##
-##		SPDX-License-Identifier: GPL-2.0-or-later:
-##
-##		This program is free software: you can redistribute it and/or modify
-##		it under the terms of the GNU General Public License as published by
-##		the Free Software Foundation, either version 2 of the License, or
-##		(at your option) any later version.
-##
-##		This program is distributed in the hope that it will be useful,
-##		but WITHOUT ANY WARRANTY; without even the implied warranty of
-##		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##		GNU General Public License for more details.
-##
-##		You should have received a copy of the GNU General Public License
-##		along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:

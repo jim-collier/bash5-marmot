@@ -1,0 +1,189 @@
+#!/bin/env bash
+
+#  shellcheck disable=2001  ## 'See if you can use ${variable//search/replace} instead.' Complains about good uses of sed.
+#  shellcheck disable=2002  ## 'Useless use of cat.'
+#  shellcheck disable=2016  ## 'Expressions don't expand in single quotes, use double quotes for that.' I know, and I often want an explicit '$'.
+#  shellcheck disable=2034  ## 'variable appears unused.' Complains about valid use of variable indirection (e.g. later use of local -n var=$1)
+#  shellcheck disable=2046  ## 'Quote to prevent word-splitting.' (OK for integers.)
+#  shellcheck disable=2086  ## 'Double quote to prevent globbing and word splitting.' (OK for integers.)
+#  shellcheck disable=2119  ## 'Use foo "$@" if function's $1 should mean script's $1.' Confusing and inapplicable.
+#  shellcheck disable=2120  ## 'Foo references arguments, but none are ever passed.' Valid function argument overloading.
+#  shellcheck disable=2128  ## 'Expanding an array without an index only gives the element in the index 0.' False hits on associative arrays.
+#  shellcheck disable=2143  ## 'Use grep -q instead of echo | grep'
+#  shellcheck disable=2155  ## 'Declare and assign separately to avoid masking return values.' Cumbersome and unnecessary. For integers it's sometimes required to even come into existence for counters.
+#  shellcheck disable=2162  ## 'read without -r will mangle backslashes.'
+#  shellcheck disable=2178  ## 'Variable was used as an array but is now assigned a string.' False hits on associative arrays with e.g. 'local -n assocArray=$1'.
+#  shellcheck disable=2181  ## 'Check exit code directly, not indirectly with $?.'
+#  shellcheck disable=2317  ## 'Can't reach.' (I.e. an 'exit' is used for debugging - and makes an unusable visual mess.)
+## shellcheck disable=2004  ## '$/${} is unnecessary on arithmetic variables.' Inappropriate complaining?
+## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
+
+##	Module history: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
+
+##	Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
+##	Licensed under The MIT License (MIT). Full text at:
+##		https://mit-license.org/
+##	SPDX-License-Identifier: MIT
+
+
+## Bail if already loaded
+[[ "${N8MOD_UNITTEST_V1_IS_LOADED:-}" == "1" ]] && return
+
+## The following are defined here only for linter support.
+## They are required to be defined first by the calling script, so should never get inside the if/fi.
+#if [[ ! -v THIS_FILEPATH ]]; then
+#	declare    THIS_FILEPATH  || :
+#	declare    THIS_FILENAME  || :
+#	declare    THIS_DIRPATH   || :
+#fi
+
+#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Globals for this module. (The existence check is redundant but that's OK.)
+if [[ ! -v THIS_LIB_FILE_PATH_t5mnv ]]; then
+	## Constants
+	declare -gr THIS_LIB_FILE_PATH_t5mnv="$(realpath -e "${BASH_SOURCE[0]}")"
+	declare -gr THIS_LIB_FILE_NAME_t5mnv="$(basename "${THIS_LIB_FILE_PATH_t5mnv}")" #...: Replace with native bash function when ready.
+	declare -gr THIS_LIB_DIR_PATH_t5mnv="$(dirname "${THIS_LIB_FILE_PATH_t5mnv}")" #.....: Replace with native bash function when ready.
+	## Variables
+	declare -g __vAllTestIDs=""
+fi
+
+
+##	Purpose ..........: Mimimal collection of typical unit-testing functions.
+##	Side-effects .....: StdOut. StdErr for errors. Adds new variable[s] to script environment.
+##	Minified? ........: Yes, readably
+##	Statefulness .....: Mostly stateless. Shares a common list of all test IDs, but shouldn't break if shared.
+##	Dependencies .....: fThrowError(), fEcho*()
+##	Dependents .......: [unit testing scripts or functions]
+
+fUnitTest_PrintSectionHeader(){
+	fEcho_Clean; fEcho_Clean "•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
+	if [[ -n "${1:-}" ]]; then
+		fEcho_Clean "Unit test section: ${1:-}"
+		fEcho_Clean "•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"
+	fi
+:;}
+
+fAssert_AreEqual(){
+	local -r testID="${1:-}"            ## Arg [optional]: Unique test ID, e.g. muid1.
+	local -r testVal="${2:-}"           ## Arg <REQUIRED>: Test val, e.g. from output of a command.
+	local -r expectVal="${3:-}"         ## Arg <REQUIRED>: Expected val.
+	local -r addComment="${4:-}"        ## Arg [optional]: Brief comment to include in output.
+	local    outputStr=""
+	if [[ -n "${testID}" ]]; then
+		[[ "${__vAllTestIDs}" == *"y${testID}z"* ]] && fThrowError  "Unique test ID has been used already: '${testID}'."
+		__vAllTestIDs="${__vAllTestIDs}y${testID}z"
+	fi
+	if [[ "${testVal}" == "${expectVal}" ]]; then
+		outputStr="Assertion ID '${testID}': Pass, test and expected values are the same: '${testVal}'"
+	else
+		outputStr="Assertion ID '${testID}': **FAIL**, test and expected values are NOT the same; '${testVal}' != '${expectVal}'."
+	fi
+	[[ -n "${addComment}" ]] && outputStr="${outputStr}  [${addComment}]"
+	fEcho_Clean "${outputStr}"
+:;}
+
+fAssert_AreNotEqual(){
+	local -r testID="${1:-}"            ## Arg [optional]: Unique test ID, e.g. muid1.
+	local -r testVal="${2:-}"           ## Arg <REQUIRED>: Test val, e.g. from output of a command.
+	local -r expectWrongVal="${3:-}"    ## Arg <REQUIRED>: Expected wrong val.
+	local -r addComment="${4:-}"        ## Arg [optional]: Brief comment to include in output.
+	local    outputStr=""
+	if [[ -n "${testID}" ]]; then
+		[[ "${__vAllTestIDs}" == *"y${testID}z"* ]] && fThrowError  "Unique test ID has been used already: '${testID}'."  "${FUNCNAME[0]}"
+		__vAllTestIDs="${__vAllTestIDs}y${testID}z"
+	fi
+	if [[ "${testVal}" != "${expectWrongVal}" ]]; then
+		outputStr="Assertion ID '${testID}': Pass, test and expected incorrect value are the not the same; '${testVal}' != '${expectWrongVal}'."
+	else
+		outputStr="Assertion ID '${testID}': **FAIL**, test and expected values ARE the same: '${testVal}'"
+	fi
+	[[ -n "${addComment}" ]] && outputStr="${outputStr}  [${addComment}]"
+	fEcho_Clean "${outputStr}"
+:;}
+
+fAssert_Eval_AreEqual(){
+	local -r testID="${1:-}"            ## Arg [optional]: Unique test ID, e.g. muid1.
+	local -r expressionToEval="${2:-}"  ## Arg <REQUIRED>: Exression to evaluate.
+	local -r expectVal="${3:-}"         ## Arg <REQUIRED>: Expected val.
+	local -r addComment="${4:-}"        ## Arg [optional]: Brief comment to include in output.
+	fAssert_AreEqual  "${testID}"  "$(eval "${expressionToEval}")"  "${expectVal}"  "${addComment}"
+:;}
+
+fAssert_Eval_ShouldError(){
+	local -r testID="${1:-}"            ## Arg [optional]: Unique test ID, e.g. muid1.
+	local -r expressionToEval="${2:-}"  ## Arg <REQUIRED>: Exression to evaluate.
+	local -r addComment="${3:-}"        ## Arg [optional]: Brief comment to include in output.
+	local -i returnCode=0
+	local    outputStr=""
+	if [[ -n "${testID}" ]]; then
+		[[ "${__vAllTestIDs}" == *"y${testID}z"* ]] && fThrowError  "Unique test ID has been used already: '${testID}'."
+		__vAllTestIDs="${__vAllTestIDs}y${testID}z"
+	fi
+	fDefineTrap_Error_Ignore
+		_ErrVal=0
+		eval "${expressionToEval}" &>/dev/null
+		returnCode=$_ErrVal
+	fDefineTrap_Error_Fatal
+	if ((returnCode > 0)); then
+		outputStr="Assertion ID '${testID}': Pass, function errored as predicted."
+	else
+		outputStr="Assertion ID '${testID}': **FAIL**, function did not error as predicted."
+	fi
+	[[ -n "${addComment}" ]] && outputStr="${outputStr}  [${addComment}]"
+	fEcho_Clean "${outputStr}"
+:;}
+
+fAssert_Eval_ShouldNotError(){
+	local -r testID="${1:-}"            ## Arg [optional]: Unique test ID, e.g. muid1.
+	local -r expressionToEval="${2:-}"  ## Arg <REQUIRED>: Exression to evaluate.
+	local -r addComment="${3:-}"        ## Arg [optional]: Brief comment to include in output.
+	local -i returnCode=0
+	local    outputStr=""
+	if [[ -n "${testID}" ]]; then
+		[[ "${__vAllTestIDs}" == *"y${testID}z"* ]] && fThrowError  "Unique test ID has been used already: '${testID}'."  "${FUNCNAME[0]}"
+		__vAllTestIDs="${__vAllTestIDs}y${testID}z"
+	fi
+	fDefineTrap_Error_Ignore
+		_ErrVal=0
+		eval "${expressionToEval}" &>/dev/null
+		returnCode=$_ErrVal
+	fDefineTrap_Error_Fatal
+	if ((returnCode == 0)); then
+		outputStr="Assertion ID '${testID}': Pass, function succeeded as predicted."
+	else
+		outputStr="Assertion ID '${testID}': **FAIL**, function errored."
+	fi
+	[[ -n "${addComment}" ]] && outputStr="${outputStr}  [${addComment}]"
+	fEcho_Clean "${outputStr}"
+:;}
+
+
+
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Script initialization
+
+## Check if sourced
+declare -i isSourced_t5mnv=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5mnv=1
+((isSourced_t5mnv)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+
+## Validate the assumption that required n8mod_core_v1 dependency is already loaded
+[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_CUSTOM_GENERAL}; }
+
+## Validate this module interface as implemented by consuming script.
+#[[ -n "${THIS_FILEPATH:-}" ]]  ||  fThrowError "The constant 'THIS_FILEPATH' must be defined by the parent script, for this module to work."
+#[[ -n "${THIS_FILENAME:-}" ]]  ||  fThrowError "The constant 'THIS_FILENAME' must be defined by the parent script, for this module to work."
+#[[ -n "${THIS_DIRPATH:-}"  ]]  ||  fThrowError "The constant 'THIS_DIRPATH' must be defined by the parent script, for this module to work."
+#fIsFunction fLoadModule_v1      ||  fThrowError "The function 'fLoadModule_v1' must be defined by the calling script, for this module to work."
+
+## Load dependency modules other than n8mod_code_v1.
+#[[ -v N8MOD_STRING_V1_IS_LOADED ]] || fLoadModule_v1  n8mod_string_v1
+
+## Flag this module as loaded.
+[[ -v N8MOD_UNITTEST_V1_IS_LOADED ]] || declare -gr N8MOD_UNITTEST_V1_IS_LOADED=1
+
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Module history:
+##		- 20260517 JC: Created.

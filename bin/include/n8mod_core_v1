@@ -18,9 +18,13 @@
 ## shellcheck disable=2004  ## '$/${} is unnecessary on arithmetic variables.' Inappropriate complaining?
 ## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
 
-
-##	Module copyright: At bottom of script.
 ##	Module history: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
+
+##	Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
+##	Licensed under The MIT License (MIT). Full text at:
+##		https://mit-license.org/
+##	SPDX-License-Identifier: MIT
+
 
 ## Bail if already loaded
 [[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] && return
@@ -66,15 +70,15 @@ fInit(){
 		##	Arg1: Literally "${RELAUNCH_SENTINELVAL}"
 		##	Arg2: Function name in calling parent script to launch with remaining arguments.
 
-		[[ -n "${2:-}" ]]               || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: A valid 'relaunch' sentinel value was passed as arg1, but no function name to branch to was passed as arg2.\n" ; return 1; }
-		declare -f "${2:-}" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function name passed as arg2 isn't defined in this environment: '${2:-}'.\n"                               ; return 1; }
+		[[ -n "${2:-}" ]]               || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: A valid 'relaunch' sentinel value was passed as arg1, but no function name to branch to was passed as arg2.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+		declare -f "${2:-}" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function name passed as arg2 isn't defined in this environment: '${2:-}'.\n"                               ; return ${ERRNUM_CUSTOM_GENERAL}; }
 		${2:-} "${@:3}"
 
 	else
 		## The first and possibly/usually only entry point. Args are whatever the script needs.
 		## fMain() must exist in calling parent script.
 
-		declare -f "fMain" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function fMain() isn't defined in this environment: '${2:-}'.\n" ; return 1; }
+		declare -f "fMain" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function fMain() isn't defined in this environment: '${2:-}'.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
 		fMain  "${@}"
 
 	fi
@@ -87,7 +91,7 @@ fInit(){
 
 fIsFunction(){
 	[[ -n "${1:-}" ]]                ||  fThrowError "No function name specified."
-	declare -f "${1:-}" &>/dev/null  ||  return 1  ## Not a function
+	declare -f "${1:-}" &>/dev/null  ||  return ${ERRNUM_CUSTOM_GENERAL}  ## Not a function
 	return 0  ## Is a function
 }
 
@@ -133,7 +137,7 @@ fGetOgUserHome(){
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Flow control
-fChainToFunc(){
+fChainToFunction(){
 	[[ -z "${UID}" ]] && { fThrowError "Can't determine user ID via \$UID."; return 2; }
 	## Args
 	local -r chainFuncName="${1}"   #....: Function name to chain to, either directly or by relaunching. Recommended to be "fMain_Chained".
@@ -147,111 +151,198 @@ fChainToFunc(){
 		##   2) User is logged in as root, or
 		##   3) This script launched recursively with sudo by the 'else' block below.
 		## Whatever the case, now's the time to chain directly to ${chainFuncName}.
-		$chainFuncName  "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}" "${8:-}" "${9:-}" "${10:-}" "${11:-}" "${12:-}" "${13:-}" "${14:-}" "${15:-}" "${16:-}" "${17:-}" "${18:-}" "${19:-}" "${20:-}" "${21:-}" "${22:-}" "${23:-}" "${24:-}" "${25:-}" "${26:-}" "${27:-}" "${28:-}" "${29:-}" "${30:-}" "${31:-}" "${32:-}" "${33:-}"
+		$chainFuncName  "${@:2}"
+
 	else
 		## This case is [[ "${UID}" != "0" ]] && ((DO_CHAIN_SUDO)). Which means we need to relaunch the whole script (in a subshell) as sudo.
 		sudo echo "[ Relaunching as sudo ... ]"
-		sudo "${0}"  "${RELAUNCH_SENTINELVAL}"  "${chainFuncName}"  "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}" "${8:-}" "${9:-}" "${10:-}" "${11:-}" "${12:-}" "${13:-}" "${14:-}" "${15:-}" "${16:-}" "${17:-}" "${18:-}" "${19:-}" "${20:-}" "${21:-}" "${22:-}" "${23:-}" "${24:-}" "${25:-}" "${26:-}" "${27:-}" "${28:-}" "${29:-}" "${30:-}" "${31:-}" "${32:-}" "${33:-}"
+		sudo "${0}"  "${RELAUNCH_SENTINELVAL}"  "${chainFuncName}"  "${@:2}"
 	fi
 }
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Error-handling (minified but not obfuscated)
-declare -gi _wasCleanupRun=0  ## Managed internally by this suite.
-declare -gi _doExitOnThrow=0  ## Managed internally by this suite.
-declare -gi _ErrVal=0         ## Set by this suite, but managed by calling functions. Think of it as an extended '$?' that doesn't immediately clear.
+## The default `fError_DefineBehavior_*` is `return`, not `exit`. Call `fError_DefineBehavior_Exit` to change that.
+## Note that SIGKILL (e.g. from kill -9) isn't possible to trap.
+declare -gi  __fError_WasCleanupRun=0          ## Managed internally by this suite.
+declare -gi  __fError_doExitNotReturn=0        ## Managed internally by this suite.
+declare -gi  __fError_DoIgnore=0               ##
+declare -gi  __fError_ExitCode_Previous=0      ## To help avoid repeat reports to console.
+declare -gi  _exitCode=0                       ## Set by this suite, but readable by calling functions. Think of it as an extended '$?' that doesn't immediately clear.
+declare -gi  _globalLoopExitFlag=0             ## Only way to exit loops when fError_DefineTrap_Ignore() in force, and user presses CTRL+C.
+declare -gi  __fError_JustDidEmptyForceEcho=0
+declare -gri ERRNUM_CUSTOM_GENERAL=3
+_fError_ShowCallStack(){
+	## Show call stack. This is only ever called immediately following other error messages to stderr, so no special console allowances needed.
+	local callStack=""
+	local funcName=""
+	for (( i = 2; i < ${#FUNCNAME[@]}; i++ )); do  ## 0=this function, don't output that.
+		funcName="${FUNCNAME[i]}"
+		if   [[ "${funcName}" == "fThrowError" ]]; then continue
+		elif [[ "${funcName}" =~ ^main|source$ ]]; then  funcName="$(basename "${BASH_SOURCE[1]}")"
+		else                                           funcName+="()"; fi
+		[[ -n "${callStack}" ]] && callStack+=", "
+		callStack+="${funcName}"
+	done;:
+	echo "Call stack: ${callStack}"  >&2
+	echo >&2; __fError_JustDidEmptyForceEcho=1; fEcho_WasLastEchoBlank_Set 1
+}
+fThrowError(){
+	## This will cause _fSingleExitPoint() to fire twice:
+	##   - Once for sure by setting return val of ${ERRNUM_CUSTOM_GENERAL}.
+	##   - Again on exit.
+	## _fSingleExitPoint() handles this.
+	local errMsg="${1:-}"              ; [[ -n "${errMsg}" ]]                      || errMsg="An error occurred."
+	local funcName=".${FUNCNAME[1]}()" ; [[ "${funcName:-}" =~ '.main()'|'.()' ]]  && funcName=''
+	errMsg="Error in $(basename "${BASH_SOURCE[1]}")${funcName:-}: ${errMsg:-}"
+	_exitCode=$ERRNUM_CUSTOM_GENERAL
+	FECHO_NEXT_TO_STDERR=1 fEcho_Clean
+	sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
+	FECHO_NEXT_TO_STDERR=1 fEcho_Clean "${errMsg}"
+	_fError_ShowCallStack
+	if ((! __fError_DoIgnore && __fError_doExitNotReturn)); then exit ${_exitCode}; else return ${_exitCode}; fi
+}
 _fSingleExitPoint(){
+	## Grab from bash global (note: clunky string compares for integers can't fail)
+	local -r errCommand="$BASH_COMMAND"
+
+	## Args
 	local -r signal="${1:-}"
 	local -r lineNum="${2:-}"
-	local -r exitCode="${3:-}"
-	local -r errMsg="${4:-}"
-	local -r errCommand="$BASH_COMMAND"
-	_ErrVal=$exitCode
-	if [[ "${signal}" == "INT" ]]; then
-		fEcho_Force
-		echo "User interrupted." >&2
-		fEcho_ResetBlankCounter
-		fCleanup  ## User cleanup
-		exit 1
-	elif [[ "${exitCode}" != "0" ]] && [[ "${exitCode}" != "1" ]]; then  ## Clunky string compare is less likely to fail than integer
-		fEcho_Clean
-		echo -e "Signal .....: '${signal}'"      >&2
-		echo -e "Err# .......: '${exitCode}'"    >&2
-	#	echo -e "Message ....: '${errMsg}'"      >&2
-		echo -e "At line# ...: '${lineNum}'"     >&2
-		echo -e "Command# ...: '${errCommand}'"  >&2
-		fEcho_Clean_Force
-		fCleanup  ## User cleanup
+	local    exitCode="${3:-}"
+
+	## Checks to bail early. Use if-then-fi to avoid implicit `return 1` with bash's simpler `&&` eval.
+	if ((__fError_WasCleanupRun)); then return ${_exitCode} ; fi  ## We've already been here before.
+
+	## Process complex logic separately from action
+	_exitCode=$exitCode
+	local -i doForceEchoAtTop=0
+	local -i doShowMsg_UserInterrupted=0
+	local -i doShowMsg_ErrFields=0
+	local -i doShowMsg_CallStack=0
+	local -i doRunCallerCleanup=0
+	local -i doExit=0
+	local -i doReturn=0
+#	((__fError_DoIgnore)) && [[ "${signal}" != "EXIT" ]] && doForceEchoAtTop=1
+	if ((__fError_DoIgnore)); then
+		if [[ "${signal}" == "EXIT" ]]; then :
+		else
+			if [[ "${signal}" == "EXIT" ]]; then
+				doRunCallerCleanup=1
+			else
+				doForceEchoAtTop=1
+			fi
+		fi
 	else
-		fCleanup  ## User cleanup
-	fi ;}
-_fTrap_Exit(){
-	if [[ "${_wasCleanupRun:-}" == "0" ]]; then  ## String compare is less to fail than integer
-		_wasCleanupRun=1
-		_fSingleExitPoint "${1:-}" "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}" "${8:-}" "${9:-}" "${10:-}" "${11:-}" "${12:-}" "${13:-}" "${14:-}" "${15:-}" "${16:-}" "${17:-}" "${18:-}" "${19:-}" "${20:-}" "${21:-}" "${22:-}" "${23:-}" "${24:-}" "${25:-}" "${26:-}" "${27:-}" "${28:-}" "${29:-}" "${30:-}" "${31:-}" "${32:-}"
-	fi ;}
-_fTrap_Error(){
-	if [[ "${_wasCleanupRun:-}" == "0" ]]; then  ## String compare is less to fail than integer
-		_wasCleanupRun=1
-	#	fEcho_ResetBlankCounter
-		_fSingleExitPoint "${1:-}" "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}" "${8:-}" "${9:-}" "${10:-}" "${11:-}" "${12:-}" "${13:-}" "${14:-}" "${15:-}" "${16:-}" "${17:-}" "${18:-}" "${19:-}" "${20:-}" "${21:-}" "${22:-}" "${23:-}" "${24:-}" "${25:-}" "${26:-}" "${27:-}" "${28:-}" "${29:-}" "${30:-}" "${31:-}" "${32:-}"
-	fi ;}
-_fTrap_Error_Ignore(){ _ErrVal=1; true;  return 0; }
-_fTrap_Error_Soft(){   _ErrVal=1; false; return 1; }
-fThrowError(){
-	local errMsg="${1:-}"         ; [[ -z "${errMsg}"      ]] && errMsg="An error occurred."
-	local meNameLocal="${meName:-}"
-	[[ -z "${meNameLocal}" ]] && meNameLocal="$(basename "${BASH_SOURCE[0]}")"
-	[[ -n "${meNameLocal}" ]] && errMsg="${meNameLocal}: ${errMsg}"
-	local callStack=""
-	for (( i = 1; i < ${#FUNCNAME[@]}; i++ )); do
-		[[ "${FUNCNAME[i]}" =~ main|source ]] && continue
-		[[ -n "${callStack}" ]] && callStack="${callStack}, "; callStack="${callStack}${FUNCNAME[i]}()"
-	done
-	[[ -n "${callStack}" ]] && callStack="Reverse call stack: ${callStack}"
-	fEcho_Clean; echo -e "${errMsg}\n${callStack}" >&2; fEcho_ResetBlankCounter
-	_ErrVal=1
-	{ ((_doExitOnThrow)) && exit 1; } || return 1; }
-fDefineTrap_Error_Fatal(){        :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error         ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Standard; exits script on any caught error; but 'set -e' has known inconsistencies catching or ignoring errors.
-fDefineTrap_Error_ExitOnThrow(){  :; _ErrVal=0; _doExitOnThrow=1; trap '_fTrap_Error         ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Only exits script on fThrowError().
-fDefineTrap_Error_Soft(){         :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error_Soft    ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Returns error code of 1 on error.
-fDefineTrap_Error_Ignore(){       :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error_Ignore  ERR    ${LINENO}  $?  $_' ERR; set +e; } ## Eats errors and returns true.
-trap '_fTrap_Error SIGHUP  ${LINENO} $? $_' SIGHUP
-trap '_fTrap_Error SIGINT  ${LINENO} $? $_' SIGINT    ## CTRL+C
-trap '_fTrap_Error SIGTERM ${LINENO} $? $_' SIGTERM
-trap '_fTrap_Exit  EXIT    ${LINENO} $? $_' EXIT
-trap '_fTrap_Exit  INT     ${LINENO} $? $_' INT
-trap '_fTrap_Exit  TERM    ${LINENO} $? $_' TERM
-fDefineTrap_Error_Fatal                  ## ERR
+		if [[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_CUSTOM_GENERAL}")$ ]]; then
+			doForceEchoAtTop=1
+			if [[ "${signal}" == "SIGINT" ]]; then
+				doShowMsg_UserInterrupted=1
+				_globalLoopExitFlag=1
+			fi
+		fi
+
+	fi
+	if [[ "${signal}" == "SIGINT" ]]; then
+	fi
+
+
+
+	[[ "${signal}" == "EXIT" ]] && ((__fError_DoIgnore)) &&
+
+
+	__fError_ExitCode_Previous=${_exitCode}
+
+
+	## Handle exit code
+	if [[ "${__fError_DoIgnore:-}" != "1" ]] && [[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_CUSTOM_GENERAL}")$ ]]; then
+		## {Not ignoring errors} and { exitCode is something other than 0 or ERRNUM_CUSTOM_GENERAL }
+		sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
+		FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
+		if [[ "${signal}" == "SIGINT" ]]; then
+			echo "User interrupted."             >&2
+		else
+			echo -e "Signal ...: ${signal}"      >&2
+			echo -e "Exit code : ${exitCode}"    >&2
+			echo -e "At line ..: ${lineNum}"     >&2
+			echo -e "Command ..: ${errCommand}"  >&2
+		fi
+	fi
+	if [[ "${__fError_DoIgnore:-}" != "1" ]] && [[ ! "${exitCode}" == "0" ]]; then
+		## Show call stack
+		_fError_ShowCallStack
+	fi
+	__fError_ExitCode_Previous=${_exitCode}
+#	if [[ "${__fError_DoIgnore:-}" == "1" ]] && [[ "${signal}" != "EXIT" ]]; then :
+#		## If ignoring errors, and aren't in the EXIT stage
+#		((! __fError_JustDidEmptyForceEcho)) && FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
+	else
+		## Run caller cleanup function (exactly once for every exit condition clean or error - except untrappable kill -9).
+		__fError_WasCleanupRun=1
+		fCleanup  ## User cleanup; always fire once on final exit, to allow caller to cleanup logfiles etc.
+		((__fError_DoIgnore)) && { true; exitCode=0; }
+		if ((__fError_doExitNotReturn)); then exit ${exitCode}; else return  ${exitCode}; fi
+	fi
+}
+fError_DefineTrap_Fatal(){       :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_DoIgnore=0      ; set -e; }  ## Standard `set -e` behavior.
+fError_DefineTrap_Ignore(){      :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_DoIgnore=1      ; set +e; }  ## Eats errors and returns true.
+fError_DefineBehavior_Return(){  :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_doExitNotReturn=0         ; } ## Returns error on error.
+fError_DefineBehavior_Exit(){    :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_doExitNotReturn=1         ; } ## Exits script on error.
+## Traps defs. Notes:
+##   - Redundant with EXIT: SIGHUP (129), SIGTERM (143), SIGPIPE.
+##   - Don't trap: SIGALRM, SIGUSR1, SIGUSR2.
+trap '_fSingleExitPoint ERR      ${LINENO} $?' ERR       ## Fires on any non-zero exit with `set -e`.
+trap '_fSingleExitPoint EXIT     ${LINENO} $?' EXIT      ## Always fires on exit, even if already handled an error.
+trap '_fSingleExitPoint SIGINT   ${LINENO} $?' SIGINT    ## CTRL+C
+trap '_fSingleExitPoint SIGQUIT  ${LINENO} $?' SIGQUIT   ## CTRL+\, dumps core if not trapped.
+fError_DefineTrap_Fatal
+fError_DefineBehavior_Return
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Echo-related (minified but not obfuscated)
+## Purpose:
+##   - Lets callers not worry about the often careful planning and/or extra
+##     logic required just to avoid repeating empty lines in stdout output to
+##     users. Many programmers wind up adding basic logic like this anyway.
+##     Also, regular fEcho() outputs a formatted version like this:
+##     "[ OUTPUT ]".
+## Notes:
+##   - Call fEcho_ResetBlankCounter(), after stdout that you don't control
+##     (e.g. from external programs), and its last line is non-blank.
+##   - There's room for non-trivial performance improvement here, by removing
+##     the extra indirections done for code efficiency. That would basically
+##     mean doing what real compilers do as part of optimization, and duplicate
+##     the code for each function that uses it. This could improve performance
+##     in long-running loops significantly. (Alternately, don't use these
+##     functions frequently in tight long-running loops, that aren't dominated
+##     by other much longer-running lines of code.)
+## OK if redundant with same definitions in global scope loaded at script start.
 declare -gi _wasLastEchoBlank=0
 declare -gi _isEchoInRawInlineMode=0
+declare -gi FECHO_NEXT_TO_STDERR=0    ## Only the next fEcho*() will go to stderr.
+fEcho_Clean_byref(){
+	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
+	local -n ptr_ToEcho_t5jf2=$1
+	local -i doEcho=0
+	## End 'InRawInlineMode'; Duplicate functionality of `fEcho_IsInRawInlineMode_Set 0`; only to stdout.
+	if ((_isEchoInRawInlineMode)); then echo; _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; fi
+	## Logic
+	if   [[ -n "${ptr_ToEcho_t5jf2}" ]] ; then doEcho=1 ; _wasLastEchoBlank=0
+	elif ((! _wasLastEchoBlank))        ; then doEcho=1 ; _wasLastEchoBlank=1 ; fi
+	## Do
+	if ((doEcho)); then
+		if ((FECHO_NEXT_TO_STDERR)); then echo -e "${ptr_ToEcho_t5jf2}" >&2 ; FECHO_NEXT_TO_STDERR=0
+		else                              echo -e "${ptr_ToEcho_t5jf2}"                              ; fi
+	fi; }
 fEcho_ResetBlankCounter()     { _wasLastEchoBlank=0;      }
 fEcho_WasLastEchoBlank_Set()  { { [[ "${1:-}" == "1" ]] && _wasLastEchoBlank=1; } || _wasLastEchoBlank=0;  }
-fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return 1; }
-fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || { _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; echo; }; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
-fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return 1; }
-fEcho_Clean_byref(){
-	## Validate nameref args:
-	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
-	## Gather args
-	local -n ptr_ToEcho_t5jf2=$1
-	## Logic
-	((_isEchoInRawInlineMode)) && fEcho_IsInRawInlineMode_Set 0
-	if [[ -n "${ptr_ToEcho_t5jf2}" ]]; then
-		echo -e "${ptr_ToEcho_t5jf2}"
-		_wasLastEchoBlank=0
-	elif [[ $_wasLastEchoBlank -eq 0 ]]; then
-		echo
-		_wasLastEchoBlank=1
-	fi
-}
-fEcho_Clean()        { local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
-fEcho()              { { [[ -z "${1:-}" ]] && fEcho_Clean ""; } || { local -r toEcho="[ ${1:-} ]"; fEcho_Clean_byref toEcho; }; }
-fEcho_Force()        { _wasLastEchoBlank=0; fEcho "${1:-}"; }
-fEcho_Clean_Force()  { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
+fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
+fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || if ((_isEchoInRawInlineMode)); then echo; _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; fi; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
+fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
+fEcho_Clean()                 { local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
+fEcho()                       { { [[ -z "${1:-}" ]] && fEcho_Clean ""; } || { local -r toEcho="[ ${1:-} ]"; fEcho_Clean_byref toEcho; }; }
+fEcho_Force()                 { _wasLastEchoBlank=0; fEcho "${1:-}"; }
+fEcho_Clean_Force()           { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -260,7 +351,7 @@ fEcho_Clean_Force()  { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; fEcho_Clea
 
 ## Check if sourced
 declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5hpa=1
-((isSourced_t5hpa)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit 1; }
+((isSourced_t5hpa)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
 
 ## Validate this module interface as implemented by consuming script.
 [[ -n "${THIS_FILEPATH:-}"  ]]  ||  fThrowError "The constant 'THIS_FILEPATH' must be defined by the calling script, for this module to work."
@@ -277,34 +368,19 @@ declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-##	Module Copyright and license:
-##		n8mod_core_v1.1.bash from https://github.com/jim-collier/x9bash5-template
-##		Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
-##		Licenced under GPL v2.0-or-later. No warranty.
-##
-##		SPDX-License-Identifier: GPL-2.0-or-later:
-##
-##		This program is free software: you can redistribute it and/or modify
-##		it under the terms of the GNU General Public License as published by
-##		the Free Software Foundation, either version 2 of the License, or
-##		(at your option) any later version.
-##
-##		This program is distributed in the hope that it will be useful,
-##		but WITHOUT ANY WARRANTY; without even the implied warranty of
-##		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-##		GNU General Public License for more details.
-##
-##		You should have received a copy of the GNU General Public License
-##		along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-##	Module history:
-##		- 20260517 JC: Created.
-
-
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ##	Notes:
 ##		Types of nameref validation
 ##			[[ -v ptr_Input_nnnnn  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function."
 ##			[[ -v ptr_Arg1_nnnnn   ]] || fThrowError "Calling function must pass a nameref to supply argument 1 to this function."
 ##			[[ -v ptr_Output_nnnnn ]] || fThrowError "Calling function must pass a nameref to receive this function's output."
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+##	Module history:
+##		- 20260517 JC: Created.
+##		- 20260521 JC:
+##			- Refactor and simplification of error-handling functions, including:
+##				- Replaced all occurrences of `return 1` and `exit 1` with `return ${ERRNUM_CUSTOM_GENERAL}` and `exit ${ERRNUM_CUSTOM_GENERAL}`
+##				- Rationalized signal traps; covers all signals.
+##				- Added ability to dynamically define `return` or `exit` as error-handling behavior. Defaults to `return`.
+##				- Removed passing `$_`, which is unreliable.
+##				- Smarter console output from fThrowError(), and _fSingleExitPoint().
