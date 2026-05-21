@@ -32,7 +32,7 @@
 fEntryPoint(){
 
 	## Test if fMain exists in calling script
-	declare -F fMain &> /dev/null ||  { echo -e "\nCalling script must have a function named 'fMain()'.\n"; return 1; }
+	declare -F fMain_Test &> /dev/null ||  { echo -e "\nError in ${meName_t4rge}.${FUNCNAME[0]}(): Calling script must have a function named 'fMain_Test()'.\n"; return 1; }
 
 	local -i count_Tests=0
 	local -i count_Passed=0
@@ -78,7 +78,10 @@ fRunTest(){
 	if [[ "${testMode}" ==  'err'* ]]; then
 		isExpectingError=1
 		fEcho; fEcho "Test #${count_Tests} Expecting error, BEGIN ..."
-		gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
+		set +e
+			gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
+			sleep 0.125  ## Give output time to sync
+		set -e
 		fEcho "Test #${count_Tests} Expecting error, END."; fEcho
 		isExpectingError=0
 	else
@@ -219,7 +222,6 @@ fPipe_LogAndShowPartialOutput() {
 fPipe_LogOnly() {
 	((! __fPipe_Log_isInitialized)) && return
 	## Send stderr to this, e.g. somecmd 2> >(fPipe_LogOnly >&2) | fPipe_LogAndShowPartialOutput
-	## Coded by Claude Opus 4.7 Adaptive, 20260424.
     local LC_ALL=C.UTF-8
     local line now secs frac ms ts
     while IFS= read -r line || [[ -n $line ]]; do
@@ -251,7 +253,6 @@ fGetIsolatedExeName(){
 }
 
 fScrambleString(){
-	## Coded by Claude Opus 4.7 Adaptive, 20260423-162519
 
 	## Args
 	local -n  outputVarName_1myn9vt=${1:-}   ; shift || true  ## The parent variable to put the results in. The results should have no spaces, unless a space is one of the inputs as a symbol to randomize. But will still work with spaces.
@@ -268,7 +269,7 @@ fScrambleString(){
 	local -a chars=() shuffled=()
 
 	## Validate
-	{ [[ -z "" ]] || ((inputLen <= 0)); }  &&  { echo -e "\n[ $(date "+%Y%m%d-%H%M%S.%N") ]  Error in ${meName_t4rge}.${FUNCNAME[0]}(): Input symbol list is empty.\n"; exit 1; }
+	{ [[ -z "${inputSymbolList}" ]] || ((inputLen <= 0)); }  &&  { echo -e "\n[ $(date "+%Y%m%d-%H%M%S.%N") ]  Error in ${meName_t4rge}.${FUNCNAME[0]}(): Input symbol list is empty.\n"; exit 1; }
 
 	## Split UTF-8 input into individual characters (bash string indexing is char-based in a UTF-8 locale).
 	for (( i=0; i<inputLen; i++ )); do
@@ -310,7 +311,7 @@ fTallyResult(){
 		'noteq'*|'fail'|'!='|'<>')  { [[ "${expectVal}"  !=  "${gotVal}" ]]  &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
 		'err'*)                     { ((errNum != 0))                        &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
 		'no_err'*|'noerr'*)         { ((errNum == 0))                        &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
-		*)                          fEcho_Clean "$(basename "${0}").${FUNCNAME[0]}() - Error: Unexpected second argument. Should be 'equal', 'notequal', or 'error'."; return 1  ;;
+		*)                          fEcho_Clean "Error in $(basename "${0}").${FUNCNAME[0]}(): Unexpected second argument. Should be 'equal', 'notequal', or 'error'."; return 1  ;;
 	esac
 :;}
 
@@ -375,13 +376,14 @@ trap '{ ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_
 ## Script entry point
 
 ## Error and exit settings
- set   -u  ## Require variable declaration. Stronger than mere linting. But can struggle if functions are in sourced files.
- set   -e  #...................: Exit on errors. This is inconsistent (made a little better with settings below), so eventually may move to 'set +e' (which is more constant work and mental overhead).
- set   -E  #...................: Propagate ERR trap settings into functions, command substitutions, and subshells.
- set   -o pipefail  #..........: Make sure all stages of piped commands also fail the same.
- shopt -s inherit_errexit  #...: Propagate 'set -e' ........ into functions, command substitutions, and subshells. Will fail on Bash <4.4.
- shopt -s dotglob  #...........: Include usually-hidden 'dotfiles' in '*' glob operations - usually desired.
- shopt -s globstar  #..........: ** matches more stuff including recursion.
+## Actually, let's assume caller is responsible, and no do surprise overrides.
+#set   -u  ## Require variable declaration. Stronger than mere linting. But can struggle if functions are in sourced files.
+#set   -e  #...................: Exit on errors. This is inconsistent (made a little better with settings below), so eventually may move to 'set +e' (which is more constant work and mental overhead).
+#set   -E  #...................: Propagate ERR trap settings into functions, command substitutions, and subshells.
+#set   -o pipefail  #..........: Make sure all stages of piped commands also fail the same.
+#shopt -s inherit_errexit  #...: Propagate 'set -e' ........ into functions, command substitutions, and subshells. Will fail on Bash <4.4.
+#shopt -s dotglob  #...........: Include usually-hidden 'dotfiles' in '*' glob operations - usually desired.
+#shopt -s globstar  #..........: ** matches more stuff including recursion.
 
 
 ## Only allow running 'sourced'.
@@ -411,3 +413,4 @@ fi
 ##		- 20260519 JC:
 ##			- Updated fEcho_* to template canonical.
 ##			- Changed license from GPL 2, to MIT.
+##			- Fixed an egregious regression in fScrambleString() whose fix wasn't pushed upstream, where $inputSymbolList validation was validated literally as `[[ -z "" ]`.
