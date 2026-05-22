@@ -124,9 +124,9 @@ fMain_Chained(){
 	((! doQuietly)) && fEcho_Clean
 
 	## Revalidate
-	[[   -z "${doQuietly}" ]]                && { fThrowError "Arg not set: doQuietly" ; return ${ERRNUM_CUSTOM_GENERAL}; }
-	[[   -z "${ogUSER}" ]]                   && { fThrowError "Arg not set: ogUSER" ; return ${ERRNUM_CUSTOM_GENERAL}; }
-	[[   -z "${ogHOME}" ]]                   && { fThrowError "Arg not set: ogHOME" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[   -z "${doQuietly}" ]]                && { fThrowError "Arg not set: doQuietly" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	[[   -z "${ogUSER}" ]]                   && { fThrowError "Arg not set: ogUSER" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	[[   -z "${ogHOME}" ]]                   && { fThrowError "Arg not set: ogHOME" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 }
 
@@ -143,7 +143,7 @@ fParseArgs(){
 	esac
 
 	## Check for need to show help
-	((ARGS_AT_LEAST_ONE_IS_REQUIRED  &&  $# <= 0)) && { fShowCopyright; fShowAbout_Local; fShowSyntax_Local; return ${ERRNUM_CUSTOM_GENERAL}; }
+	((ARGS_AT_LEAST_ONE_IS_REQUIRED  &&  $# <= 0)) && { fShowCopyright; fShowAbout_Local; fShowSyntax_Local; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 	## GENERIC: Variables for loop
 	local -ri MAX_EMPTY_SEQUENTIAL_ARGS=10  ## Bail after this many consecutive empty args
@@ -243,7 +243,7 @@ fParseArgs(){
 ## Only put critical cleanup here, and/or final stdout message independent of
 ##   reason for exit.
 fCleanup(){
-	notify-send "Title" "${BASH_SOURCE[0]}.${FUNCNAME[0]}(): Ran."  ##DEBUG
+	#notify-send "Title" "$(basename "${BASH_SOURCE[0]}").${FUNCNAME[0]}(): Ran."  ##DEBUG
 	if ((! doQuietly)); then
 		fEcho_Clean
 	fi
@@ -285,13 +285,13 @@ fResolvePath_v1(){
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
 	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
 	local -i mustExist=${1:-1}                 ; shift || :  ## 1 [default]: path must exist or error occurs. 0: Just rationalize paths, doesn't have to exist.
 	## Validate
-	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Init
 	ref_Return_ResolvedPath_t4rej=""
 	## Obvious test, as-is
@@ -312,10 +312,10 @@ fResolvePath_v1(){
 	testPath="${nameOrPath}"
 	if ((mustExist)); then
 		testPath="$(realpath -e "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
+		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	else
 		testPath="$(realpath -m "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
+		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	fi
 	## Success
 	ref_Return_ResolvedPath_t4rej="${testPath}"
@@ -336,8 +336,8 @@ fResolvePath_v1(){
 
 ## Check if sourced
 declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5ja1=1
-#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
-{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
+{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Load required core module
 [[ -v N8MOD_CORE_V1_IS_LOADED ]] || fLoadModule_v1  'n8mod_core_v1'

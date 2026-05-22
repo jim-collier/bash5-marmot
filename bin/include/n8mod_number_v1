@@ -60,7 +60,7 @@ fIsBool(){
 		"0"|"false"|"no"|"n"|"f")                        return 0  ;;  ## 0 for function return means "success", it is boolean.
 		*) [[ "${inputVal}" =~ $BREGEX_IS_PURE_INT ]] && return 0  ;;  ## 0 for function return means "success", it is boolean.
 	esac
-	return ${ERRNUM_CUSTOM_GENERAL}  ## 1 for function return means "failure", it is not boolean.
+	return ${ERRNUM_MSG_ALREADY_SHOWN}  ## 1 for function return means "failure", it is not boolean.
 }
 
 fIsBoolTrue(){
@@ -70,10 +70,10 @@ fIsBoolTrue(){
 	local -r inputVal=$1  # ; shift || :  ##
 	case "${inputVal,,}" in
 		"1"|"true"|"yes"|"y"|"t")  return 0  ;;  ## 0 means function "success", or boolean true.
-		"0"|"false"|"no"|"n"|"f")  return ${ERRNUM_CUSTOM_GENERAL}  ;;  ## >0 means "failure", or boolean false.
+		"0"|"false"|"no"|"n"|"f")  return ${ERRNUM_MSG_ALREADY_SHOWN}  ;;  ## >0 means "failure", or boolean false.
 		*)
 			if [[ "${inputVal}" =~ $BREGEX_IS_PURE_INT ]]; then
-				((inputVal == 0)) && return ${ERRNUM_CUSTOM_GENERAL}  ## 1 for function return means "failure", or boolean false.
+				((inputVal == 0)) && return ${ERRNUM_MSG_ALREADY_SHOWN}  ## 1 for function return means "failure", or boolean false.
 				return 0  ## 0 means function "success", or boolean true.
 			fi
 		;;
@@ -143,10 +143,10 @@ fGetRandomInt_SlowerBetter(){
 
 ## Check if sourced
 declare -i isSourced_t5jm0=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5jm0=1
-((isSourced_t5jm0)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+((isSourced_t5jm0)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Validate the assumption that required n8mod_core_v1 dependency is already loaded
-[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_CUSTOM_GENERAL}; }
+[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Validate this module interface as implemented by consuming script.
 #[[ -n "${THIS_FILEPATH:-}"  ]]  ||  fThrowError "The constant 'THIS_FILEPATH' must be defined by the parent script, for this module to work."

@@ -381,7 +381,7 @@ EOF_s7asw
 			echo "User interrupted." >&2
 			fEcho_ResetBlankCounter
 			fCleanup  ## User cleanup
-			exit ${ERRNUM_CUSTOM_GENERAL}
+			exit ${ERRNUM_MSG_ALREADY_SHOWN}
 		elif [[ "${exitCode}" != "0" ]] && [[ "${exitCode}" != "1" ]]; then  ## Clunky string compare is less likely to fail than integer
 			fEcho_Clean
 			echo -e "Signal .....: '${signal}'"      >&2
@@ -537,7 +537,7 @@ fPromptToContinue(){
 		fi
 		read -r -p "Continue? (y/n): " answer
 		fEcho_ResetBlankCounter
-		[[ "${answer,,}" != "y" ]] && { fEcho "User aborted."; exit ${ERRNUM_CUSTOM_GENERAL}; }
+		[[ "${answer,,}" != "y" ]] && { fEcho "User aborted."; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 		((! doQuietly)) && fEcho_Clean
 	fi
 }
