@@ -244,7 +244,8 @@ fParseArgs(){
 ##   reason for exit.
 fCleanup(){
 	#notify-send "Title" "$(basename "${BASH_SOURCE[0]}").${FUNCNAME[0]}(): Ran."  ##DEBUG
-	if ((! doQuietly)); then
+	if ((!doQuietly)); then
+		((_exitCode==0)) && { fEcho; fEcho "Done."; }
 		fEcho_Clean
 	fi
 }
@@ -365,3 +366,5 @@ declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## History:
 ##		- 20260517 JC: Created.
+##		- 20260520-22 JC: Debugging.
+

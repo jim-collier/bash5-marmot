@@ -38,6 +38,36 @@ if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
 	declare -g   __fRunTest_EchoHook1=""
 fi
 
+## Saved error-handling state (generic bash settings, no dependency on any specific error-handling module)
+declare -g  __flib_test__saved_setflags=""
+declare -g  __flib_test__saved_pipefail=""
+declare -g  __flib_test__saved_inherit_errexit=""
+declare -g  __flib_test__saved_errtrap=""
+
+_flib_test__Error_CallersSettings_Store(){
+	__flib_test__saved_setflags="${-}"
+	__flib_test__saved_pipefail=$(shopt -po pipefail)
+	__flib_test__saved_inherit_errexit=$(shopt -p inherit_errexit)
+	__flib_test__saved_errtrap=$(trap -p ERR)
+}
+_flib_test__Error_CallersSettings_Restore(){
+	[[ "${__flib_test__saved_setflags}" == *e* ]] && set -e || set +e
+	[[ "${__flib_test__saved_setflags}" == *E* ]] && set -E || set +E
+	eval "${__flib_test__saved_pipefail}"
+	eval "${__flib_test__saved_inherit_errexit}"
+	if [[ -n "${__flib_test__saved_errtrap}" ]]; then eval "${__flib_test__saved_errtrap}"; else trap - ERR; fi
+}
+_flib_test__Error_SetHandler_DefineTrap_Ignore(){
+	set +e +E
+	set +o pipefail
+	trap '((++count_Errors_Expected))' ERR
+}
+_flib_test__Error_SetHandler_DefineTrap_Fatal(){
+	set -e -E
+	set -o pipefail
+	trap '{ ((isExpectingError)) && ((++count_Errors_Expected)); } || ((++count_Errors_Unexpected))' ERR
+}
+
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 # Generic code
@@ -153,17 +183,21 @@ fRunTest_ExecCmd_v1(){
 
 	((++count_Tests))
 
+	## Store caller's error settings
+	_flib_test__Error_CallersSettings_Store
+
 	## Run the test
 	if [[ "${assertMode}" ==  'err'* ]]; then
 		isExpectingError=1
 		fEcho; fEcho "Test #${count_Tests} Expecting error, BEGIN ..."
-		set +e
+		_flib_test__Error_SetHandler_DefineTrap_Ignore
 			sleep 0.5  ## Give buffered stdout time to sync with unbuffered stdout, usually.
 			gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
-		:; set -e
+		_flib_test__Error_SetHandler_DefineTrap_Fatal
 		fEcho "Test #${count_Tests} Expecting error, END."; fEcho
 		isExpectingError=0
 	else
+		_flib_test__Error_SetHandler_DefineTrap_Fatal
 		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
 		gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
 	fi
@@ -197,17 +231,20 @@ fRunTest_ExecCmd_v1(){
 	local exeName=""  exeArgs=""
 	fGetIsolatedExeName  exeName  exeArgs  "${cmdStr}"
 	[[ -n "${__fRunTest_EchoHook1:-}" ]] && { fEcho_Clean "${__fRunTest_EchoHook1:-}"; __fRunTest_EchoHook1=""; }
-	fEcho_Clean "Test command ...: '${exeName}'${exeArgs}"
-	fEcho_Clean "Expected value .: '${expectVal}'"
-	fEcho_Clean "Actual value ...: '${gotVal}'"
+	fEcho_Clean "Test command ...: ${exeName}${exeArgs}"
+	if [[ "${assertMode}" !=  *'err'* ]]; then
+		fEcho_Clean "Expected value .: '${expectVal}'"
+		fEcho_Clean "Actual value ...: '${gotVal}'"
+	fi
 	fEcho_Clean
+
+	## Restore caller's error-handling settings
+	_flib_test__Error_CallersSettings_Restore
 
 	if ((ABORT_ON_FIRST_ERROR)) && ((doConditionalAbort)); then
 		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean "[ ${meName_t4rge}.${FUNCNAME[0]}(): Exiting on first error as instructed."
 	#	FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
-		trap - ERR
-		set -e
 		return ${ERRNUM_MSG_ALREADY_SHOWN}
 	fi
 
@@ -349,7 +386,7 @@ fGetIsolatedExeName(){
 	retVarName_TheRest_1myq1b5=""
 	local isolatedExeName=""
 	local strAfterThat=""
-	isolatedExeName="$(echo "${commandString}" | grep -oP "\'[^\']*\'" | head -n 1)"
+	isolatedExeName="$(echo "${commandString}" | grep -oP "\'[^\']*\'" | head -n 1 || true)"
 	strAfterThat=${commandString#*"${isolatedExeName}"}
 	isolatedExeName="$(basename "${isolatedExeName}")"
 	isolatedExeName="${isolatedExeName#\'}"; isolatedExeName="${isolatedExeName%\'}"
@@ -502,7 +539,6 @@ fEcho_Clean_Force()           { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; f
 declare -gi isExpectingError=0
 declare -gi count_Errors_Unexpected=0
 declare -gi count_Errors_Expected=0
-#trap 'printf "(line %s) " "$LINENO" "$?" >&2; echo; { ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_Errors_Unexpected))' ERR
 trap '{ ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_Errors_Unexpected))' ERR
 
 
@@ -557,3 +593,4 @@ fi
 ##				  that standardize on one or the other order. In this case, it was easier to change
 ##				  this script to match, than those in n8mod_unittest.
 ##				- Changed arg order in internal fTallyResults() to match.
+##		- 20260522 JC: Bug fix - grep fails in pipe.

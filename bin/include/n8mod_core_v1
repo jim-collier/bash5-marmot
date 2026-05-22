@@ -174,20 +174,6 @@ if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
 #	declare -gi  __fError_JustDidEmptyForceEcho=0
 	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
 fi
-_fError_ShowCallStack(){
-	## Show call stack. This is only ever called immediately following other error messages to stderr, so no special console allowances needed.
-	local callStack=""
-	local funcName=""
-	for (( i = 2; i < ${#FUNCNAME[@]}; i++ )); do  ## 0=this function, don't output that.
-		funcName="${FUNCNAME[i]}"
-		if   [[ "${funcName}" == "fThrowError" ]]; then continue
-		elif [[ "${funcName}" =~ ^main|source$ ]]; then  funcName="$(basename "${BASH_SOURCE[1]}")"
-		else                                           funcName+="()"; fi
-		[[ -n "${callStack}" ]] && callStack+=", "
-		callStack+="${funcName}"
-	done;:
-	echo "Call stack: ${callStack}"  >&2
-}
 fThrowError(){
 	## This will cause _fSingleExitPoint() to fire twice:
 	##   - Once for sure by setting return val of ${ERRNUM_MSG_ALREADY_SHOWN}.
@@ -203,6 +189,20 @@ fThrowError(){
 	_fError_ShowCallStack
 	if ((! __fError_DoIgnore && __fError_doExitNotReturn)); then exit ${_exitCode}; else return ${_exitCode}; fi
 }
+_fError_ShowCallStack(){
+	## Show call stack. This is only ever called immediately following other error messages to stderr, so no special console allowances needed.
+	local callStack=""
+	local funcName=""
+	for (( i = 2; i < ${#FUNCNAME[@]}; i++ )); do  ## 0=this function, don't output that.
+		funcName="${FUNCNAME[i]}"
+		if   [[ "${funcName}" == "fThrowError" ]]; then continue
+		elif [[ "${funcName}" =~ ^main|source$ ]]; then  funcName="$(basename "${BASH_SOURCE[1]}")"
+		else                                           funcName+="()"; fi
+		[[ -n "${callStack}" ]] && callStack+=", "
+		callStack+="${funcName}"
+	done;:
+	echo "Call stack: ${callStack}"  >&2
+}
 _fSingleExitPoint(){
 	## Grab from bash global (note: clunky string compares for integers can't fail)
 	local -r errCommand="$BASH_COMMAND"
@@ -215,7 +215,7 @@ _fSingleExitPoint(){
 	## Checks to bail early. Use if-then-fi to avoid implicit `return 1` with bash's simpler `&&` eval.
 	if [[ "${__fError_WasCleanupRun:-}" == "1" ]]; then return ${_exitCode} ; fi  ## We've already been here before.
 
-	## Process complex logic separately from actions
+	## Variables for logic compute
 	local -i doForceEcho_AtTop=0
 	local -i wasUserInterrupted=0
 	local -i doShowMsg_ErrFields=0
@@ -228,10 +228,12 @@ _fSingleExitPoint(){
 	local -i isError=0
 	local -i isUnexpectedError=0
 	local -i isSubshell=$(( BASHPID != $$ ))
+
+	## Process complex logic separately from actions
 	_exitCode=$exitCode #..............: Local to global
 	isIgnoring=$__fError_DoIgnore #....: Global to local
 	isError=$(( exitCode != 0 ))
-	[[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_MSG_ALREADY_SHOWN}")$ ]]                           && isUnexpectedError=1
+	[[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_MSG_ALREADY_SHOWN}")$ ]]                        && isUnexpectedError=1
 	((  isUnexpectedError )) && [[ "${signal}" == "SIGINT" ]]                             && wasUserInterrupted=1
 	((  wasUserInterrupted))                                                              && doForceEcho_AtTop=1
 	(( !isIgnoring && isUnexpectedError ))                                                && doForceEcho_AtTop=1
@@ -244,7 +246,7 @@ _fSingleExitPoint(){
 	(( !isIgnoring )) || [[ "${signal}" == "EXIT" ]] && ((   __fError_doExitNotReturn ))  && doExit=1
 	(( !isIgnoring )) || [[ "${signal}" == "EXIT" ]] && (( ! __fError_doExitNotReturn ))  && doReturn=1
 
-	## --- Actions: based on flags ---
+	## Take actions based on flags
 	if ((doForceEcho_AtTop)); then
 		sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
@@ -272,10 +274,15 @@ _fSingleExitPoint(){
 		__fError_WasCleanupRun=1
 		fCleanup  ## User cleanup; always fire once on final exit, to allow caller to cleanup logfiles etc.
 	fi
+
+	## Revisit variable values
 	((isSubshell && isUnexpectedError)) && exitCode=$ERRNUM_MSG_ALREADY_SHOWN
-	((doExit))     && exit ${exitCode}
-	((doReturn))   && return ${exitCode}
+	((doExit || doReturn))              && __fError_WasCleanupRun=1
 	((isIgnoring)) && { true; exitCode=0; }
+
+	## Take final actions
+	((doExit))                          && exit ${exitCode}
+	((doReturn))                        && return ${exitCode}
 }
 fError_DefineTrap_Fatal(){       :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_DoIgnore=0      ; set -e; }  ## Standard `set -e` behavior.
 fError_DefineTrap_Ignore(){      :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_DoIgnore=1      ; set +e; }  ## Eats errors and returns true.
@@ -379,3 +386,4 @@ declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##				- Added ability to dynamically define `return` or `exit` as error-handling behavior. Defaults to `return`.
 ##				- Removed passing `$_`, which is unreliable.
 ##				- Smarter console output from fThrowError(), and _fSingleExitPoint().
+##		- 20260522 JC: Error-handling debugging (the hardest kind of debugging!).
