@@ -82,12 +82,17 @@ fMain_Test(){
 	local inputVal=""  expectVal=""  gotVal=""  tmpVal=""
 	local -i loopCount=0
 
-	fUnitTest_PrintSectionHeader  "n8mod_number_v1"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_core_v1"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fRunTest_ExecCmd_v1  'error'  'fIsFunction NOTAFUNC'
+	fGetOgUserName inputVal ; fRunTest_Compare_v1  '=='  "${inputVal}"  "${USER}"
+	fGetOgUserHome inputVal ; fRunTest_Compare_v1  '=='  "${inputVal}"  "${HOME}"
 
+
+
+#	fUnitTest_PrintSectionHeader  "n8mod_number_v1"
 #	fRunTest  '=='  "${expectVal}"  "fIsBool  ${inputVal}  128v1compat"
-
-
-
 return 0
 
 
@@ -111,6 +116,10 @@ return 0
 ## Interactive testing, no logging.
 ## Runs first in invocations at the bottom of this script, unless commented out.
 fMain_Test_Interactive(){
+
+	## Once everything passes, return 0 so we can get straight to automated tests.
+	return 0
+
 	fEcho_Clean
 
 	## Environment overrides
@@ -119,24 +128,29 @@ fMain_Test_Interactive(){
 	## Variables
 	local -i retVal=0
 
-	## Test these settings combos enabled one at a time, then comment out once all pass.
-#	fError_DefineTrap_Fatal  ; fError_DefineBehavior_Return
-#	fError_DefineTrap_Fatal  ; fError_DefineBehavior_Exit
-	fError_DefineTrap_Ignore ; fError_DefineBehavior_Return  ## Will ignore errors, but not explicit `exit`.
-#	fError_DefineTrap_Ignore ; fError_DefineBehavior_Exit    ## fError_DefineBehavior_Exit() is overridden, if also ignoring errors.
+	####
+	#### Test error setting combos enabled one at a time, on various types of errors; then comment them all out once it all passes.
+
+	fError_DefineTrap_Fatal  ; fError_DefineBehavior_Return
+#	fError_DefineTrap_Fatal  ; fError_DefineBehavior_Exit    ## Won't exit on case of 'return 0'.
+#	fError_DefineTrap_Ignore ; fError_DefineBehavior_Return  ## Will ignore errors, but not explicit `exit`.
+#	fError_DefineTrap_Ignore ; fError_DefineBehavior_Exit    ## fError_DefineBehavior_Exit() is overridden, if also ignoring errors, so it should behave no differently than above.
 	## Test these error triggers one at a time, then comment out once all pass.
-	fEcho_Clean "Hit CTRL+C to test user break ..."; fEcho_IsInRawInlineMode_Set 1; for i in {1..10}; do sleep 1; echo -n "${i} "; done; :
+#	fEcho_Clean "Hit CTRL+C to test user break ..."; fEcho_IsInRawInlineMode_Set 1; _global_ExitLoopNow=0; for i in {1..10}; do sleep 1; ((_global_ExitLoopNow)) && break; echo -n "${i} "; done;:; _global_ExitLoopNow=0
 #	rsync /DOESNT_EXIST/bogus
 #	rsync /DOESNT_EXIST/bogus 2>/dev/null #.................................: Should not show any extra lines at all, swallow rsync error, but still show error handler text.
 #	rsync /DOESNT_EXIST/bogus 2>/dev/null || true #.........................: Should look like nothing happened, even with `fError_DefineTrap_Fatal`.
-#	fThrowError "This is a test fThrowError message."
+#	echo "Hello Kitty, how are you?" | sed --bogus-flag 's/ Kitty,//'             | head -n 1
+#	echo "Hello Kitty, how are you?" | sed --bogus-flag 's/ Kitty,//' 2>/dev/null | head -n 1
+#	echo "Hello Kitty, how are you?" | sed --bogus-flag 's/ Kitty,//' 2>/dev/null | head -n 1 || true
+	fThrowError "This is a test fThrowError message."
 #	fThrowError "This is a test fThrowError message." 2>/dev/null
 #	return 0
-# 	return 1
-#	return $ERRNUM_CUSTOM_GENERAL #...: Ditto `exit $ERRNUM_CUSTOM_GENERAL` note above.
+#	return 1
+#	return $ERRNUM_MSG_ALREADY_SHOWN #...: Ditto `exit $ERRNUM_MSG_ALREADY_SHOWN` note below.
 #	exit #............................: Can't ignore a explicit exit.
 #	exit 1
-#	exit $ERRNUM_CUSTOM_GENERAL #.....: Should not show detailed error message. This is what a custom error message should exit with. [And what fThrowError() uses.]
+#	exit $ERRNUM_MSG_ALREADY_SHOWN #.....: Should not show an error message. This is what a custom error message should exit with. [And what fThrowError() uses.]
 #	exit 200
 
 	####
@@ -154,7 +168,7 @@ fMain_Test_Interactive(){
 	fEcho_Clean "  and interactive prompt to continue."
 	fEcho_Clean
 	fEcho_Clean ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-#	set +e ; "${exe1}"; retVal=$? ; : ; set -e
+	set +e ; "${exe1}"; retVal=$? ; : ; set -e
 	fEcho_Clean "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	fEcho_Clean
 	fEcho_Clean "Script return value: ${retVal} (user chose to $( if ((retVal==0)); then echo "continue"; else echo "abort"; fi ))."
@@ -165,7 +179,7 @@ fMain_Test_Interactive(){
 	fEcho_Clean "Going to test n8mod_interact_v1.fPressAnyKeyToContinue() ...."
 	fEcho_Clean
 	fEcho_Clean ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-#	fPressAnyKeyToContinue
+	fPressAnyKeyToContinue
 	fEcho_Clean "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
 	fEcho_Clean
 
@@ -193,13 +207,13 @@ fResolvePath_v1(){
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
 	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
 	local -i mustExist=${1:-1}                 ; shift || :  ## 1 [default]: path must exist or error occurs. 0: Just rationalize paths, doesn't have to exist.
 	## Validate
-	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Init
 	ref_Return_ResolvedPath_t4rej=""
 	## Obvious test, as-is
@@ -220,10 +234,10 @@ fResolvePath_v1(){
 	testPath="${nameOrPath}"
 	if ((mustExist)); then
 		testPath="$(realpath -e "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
+		[[ -n "${testPath}" && -e "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	else
 		testPath="$(realpath -m "${testPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_CUSTOM_GENERAL}; }
+		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	fi
 	## Success
 	ref_Return_ResolvedPath_t4rej="${testPath}"
@@ -244,8 +258,8 @@ fResolvePath_v1(){
 
 ## Check if sourced
 declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5ja1=1
-#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
-{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+#((isSourced_t5ja1)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
+{ ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Make sure definitions for paths relative to this script work,
 ##   by making sure we're evaluating from it.
@@ -290,7 +304,7 @@ fResolvePath_v1  exe1  "${exe1}" ; readonly exe1
 ##   reason for exit.
 ## Define after loading $exe1, so that this definition wins.
 fCleanup(){
-	notify-send "Title" "${BASH_SOURCE[0]}.${FUNCNAME[0]}(): Ran."  ##DEBUG
+	notify-send "Title" "$(basename "${BASH_SOURCE[0]}").${FUNCNAME[0]}(): Ran."  ##DEBUG
 	if ((! doQuietly)); then :
 		fEcho_Clean
 	fi
@@ -307,6 +321,7 @@ fMain_Test_Interactive
 
 ## Kick off logged testing (this will cause fMain_Test() to run).
 fEntryPoint | fPipe_LogAndShowPartialOutput
+fEcho_ResetBlankCounter  ## Pipe bypasses fEcho tracking; reset to neutral state
 
 
 

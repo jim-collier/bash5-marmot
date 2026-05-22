@@ -70,15 +70,15 @@ fInit(){
 		##	Arg1: Literally "${RELAUNCH_SENTINELVAL}"
 		##	Arg2: Function name in calling parent script to launch with remaining arguments.
 
-		[[ -n "${2:-}" ]]               || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: A valid 'relaunch' sentinel value was passed as arg1, but no function name to branch to was passed as arg2.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
-		declare -f "${2:-}" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function name passed as arg2 isn't defined in this environment: '${2:-}'.\n"                               ; return ${ERRNUM_CUSTOM_GENERAL}; }
+		[[ -n "${2:-}" ]]               || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: A valid 'relaunch' sentinel value was passed as arg1, but no function name to branch to was passed as arg2.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+		declare -f "${2:-}" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function name passed as arg2 isn't defined in this environment: '${2:-}'.\n"                               ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 		${2:-} "${@:3}"
 
 	else
 		## The first and possibly/usually only entry point. Args are whatever the script needs.
 		## fMain() must exist in calling parent script.
 
-		declare -f "fMain" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function fMain() isn't defined in this environment: '${2:-}'.\n" ; return ${ERRNUM_CUSTOM_GENERAL}; }
+		declare -f "fMain" &>/dev/null || { echo -e "\nError in ${THIS_LIB_FILE_NAME_t5hpa}: The function fMain() isn't defined in this environment: '${2:-}'.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 		fMain  "${@}"
 
 	fi
@@ -91,7 +91,7 @@ fInit(){
 
 fIsFunction(){
 	[[ -n "${1:-}" ]]                ||  fThrowError "No function name specified."
-	declare -f "${1:-}" &>/dev/null  ||  return ${ERRNUM_CUSTOM_GENERAL}  ## Not a function
+	declare -f "${1:-}" &>/dev/null  ||  return ${ERRNUM_MSG_ALREADY_SHOWN}  ## Not a function
 	return 0  ## Is a function
 }
 
@@ -164,14 +164,16 @@ fChainToFunction(){
 ## Error-handling (minified but not obfuscated)
 ## The default `fError_DefineBehavior_*` is `return`, not `exit`. Call `fError_DefineBehavior_Exit` to change that.
 ## Note that SIGKILL (e.g. from kill -9) isn't possible to trap.
-declare -gi  __fError_WasCleanupRun=0          ## Managed internally by this suite.
-declare -gi  __fError_doExitNotReturn=0        ## Managed internally by this suite.
-declare -gi  __fError_DoIgnore=0               ##
-declare -gi  __fError_ExitCode_Previous=0      ## To help avoid repeat reports to console.
-declare -gi  _exitCode=0                       ## Set by this suite, but readable by calling functions. Think of it as an extended '$?' that doesn't immediately clear.
-declare -gi  _globalLoopExitFlag=0             ## Only way to exit loops when fError_DefineTrap_Ignore() in force, and user presses CTRL+C.
-declare -gi  __fError_JustDidEmptyForceEcho=0
-declare -gri ERRNUM_CUSTOM_GENERAL=3
+if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
+	declare -gi  __fError_WasCleanupRun=0          ## Managed internally by this suite.
+	declare -gi  __fError_doExitNotReturn=0        ## Managed internally by this suite.
+	declare -gi  __fError_DoIgnore=0               ##
+	declare -gi  __fError_ExitCode_Previous=0      ## To help avoid repeat reports to console.
+	declare -gi  _exitCode=0                       ## Set by this suite, but readable by calling functions. Think of it as an extended '$?' that doesn't immediately clear.
+	declare -gi  _global_ExitLoopNow=0             ## Only way to exit loops when fError_DefineTrap_Ignore() in force, and user presses CTRL+C.
+#	declare -gi  __fError_JustDidEmptyForceEcho=0
+	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
+fi
 _fError_ShowCallStack(){
 	## Show call stack. This is only ever called immediately following other error messages to stderr, so no special console allowances needed.
 	local callStack=""
@@ -185,17 +187,16 @@ _fError_ShowCallStack(){
 		callStack+="${funcName}"
 	done;:
 	echo "Call stack: ${callStack}"  >&2
-	echo >&2; __fError_JustDidEmptyForceEcho=1; fEcho_WasLastEchoBlank_Set 1
 }
 fThrowError(){
 	## This will cause _fSingleExitPoint() to fire twice:
-	##   - Once for sure by setting return val of ${ERRNUM_CUSTOM_GENERAL}.
+	##   - Once for sure by setting return val of ${ERRNUM_MSG_ALREADY_SHOWN}.
 	##   - Again on exit.
 	## _fSingleExitPoint() handles this.
 	local errMsg="${1:-}"              ; [[ -n "${errMsg}" ]]                      || errMsg="An error occurred."
 	local funcName=".${FUNCNAME[1]}()" ; [[ "${funcName:-}" =~ '.main()'|'.()' ]]  && funcName=''
 	errMsg="Error in $(basename "${BASH_SOURCE[1]}")${funcName:-}: ${errMsg:-}"
-	_exitCode=$ERRNUM_CUSTOM_GENERAL
+	_exitCode=$ERRNUM_MSG_ALREADY_SHOWN
 	FECHO_NEXT_TO_STDERR=1 fEcho_Clean
 	sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 	FECHO_NEXT_TO_STDERR=1 fEcho_Clean "${errMsg}"
@@ -212,77 +213,69 @@ _fSingleExitPoint(){
 	local    exitCode="${3:-}"
 
 	## Checks to bail early. Use if-then-fi to avoid implicit `return 1` with bash's simpler `&&` eval.
-	if ((__fError_WasCleanupRun)); then return ${_exitCode} ; fi  ## We've already been here before.
+	if [[ "${__fError_WasCleanupRun:-}" == "1" ]]; then return ${_exitCode} ; fi  ## We've already been here before.
 
-	## Process complex logic separately from action
-	_exitCode=$exitCode
-	local -i doForceEchoAtTop=0
-	local -i doShowMsg_UserInterrupted=0
+	## Process complex logic separately from actions
+	local -i doForceEcho_AtTop=0
+	local -i wasUserInterrupted=0
 	local -i doShowMsg_ErrFields=0
 	local -i doShowMsg_CallStack=0
+	local -i doForceEcho_AtBottom=0
 	local -i doRunCallerCleanup=0
 	local -i doExit=0
 	local -i doReturn=0
-#	((__fError_DoIgnore)) && [[ "${signal}" != "EXIT" ]] && doForceEchoAtTop=1
-	if ((__fError_DoIgnore)); then
-		if [[ "${signal}" == "EXIT" ]]; then :
-		else
-			if [[ "${signal}" == "EXIT" ]]; then
-				doRunCallerCleanup=1
-			else
-				doForceEchoAtTop=1
-			fi
-		fi
-	else
-		if [[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_CUSTOM_GENERAL}")$ ]]; then
-			doForceEchoAtTop=1
-			if [[ "${signal}" == "SIGINT" ]]; then
-				doShowMsg_UserInterrupted=1
-				_globalLoopExitFlag=1
-			fi
-		fi
+	local -i isIgnoring=0
+	local -i isError=0
+	local -i isUnexpectedError=0
+	local -i isSubshell=$(( BASHPID != $$ ))
+	_exitCode=$exitCode #..............: Local to global
+	isIgnoring=$__fError_DoIgnore #....: Global to local
+	isError=$(( exitCode != 0 ))
+	[[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_MSG_ALREADY_SHOWN}")$ ]]                           && isUnexpectedError=1
+	((  isUnexpectedError )) && [[ "${signal}" == "SIGINT" ]]                             && wasUserInterrupted=1
+	((  wasUserInterrupted))                                                              && doForceEcho_AtTop=1
+	(( !isIgnoring && isUnexpectedError ))                                                && doForceEcho_AtTop=1
+	(( !isIgnoring && isUnexpectedError ))                                                && doShowMsg_CallStack=1
+	(( !isIgnoring && isUnexpectedError )) && [[ "${signal}" != "SIGINT" ]]               && doShowMsg_ErrFields=1
+	((  isIgnoring )) && [[ "${signal}" != "EXIT" ]]                                      && doForceEcho_AtBottom=1
+	((  doShowMsg_ErrFields ))                                                            && doForceEcho_AtBottom=1
+	((  doShowMsg_CallStack ))                                                            && doForceEcho_AtBottom=1
+	(( !isSubshell )) && { (( !isIgnoring )) || [[ "${signal}" == "EXIT" ]]; }            && doRunCallerCleanup=1
+	(( !isIgnoring )) || [[ "${signal}" == "EXIT" ]] && ((   __fError_doExitNotReturn ))  && doExit=1
+	(( !isIgnoring )) || [[ "${signal}" == "EXIT" ]] && (( ! __fError_doExitNotReturn ))  && doReturn=1
 
-	fi
-	if [[ "${signal}" == "SIGINT" ]]; then
-	fi
-
-
-
-	[[ "${signal}" == "EXIT" ]] && ((__fError_DoIgnore)) &&
-
-
-	__fError_ExitCode_Previous=${_exitCode}
-
-
-	## Handle exit code
-	if [[ "${__fError_DoIgnore:-}" != "1" ]] && [[ ! "${exitCode}" =~ ^('0'|"${ERRNUM_CUSTOM_GENERAL}")$ ]]; then
-		## {Not ignoring errors} and { exitCode is something other than 0 or ERRNUM_CUSTOM_GENERAL }
+	## --- Actions: based on flags ---
+	if ((doForceEcho_AtTop)); then
 		sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
-		if [[ "${signal}" == "SIGINT" ]]; then
-			echo "User interrupted."             >&2
-		else
-			echo -e "Signal ...: ${signal}"      >&2
-			echo -e "Exit code : ${exitCode}"    >&2
-			echo -e "At line ..: ${lineNum}"     >&2
-			echo -e "Command ..: ${errCommand}"  >&2
-		fi
 	fi
-	if [[ "${__fError_DoIgnore:-}" != "1" ]] && [[ ! "${exitCode}" == "0" ]]; then
-		## Show call stack
-		_fError_ShowCallStack
+	if ((wasUserInterrupted)); then
+		_global_ExitLoopNow=1
+		if ((isIgnoring)); then echo "[ User break. ]"  >&2
+		else                    echo "User break."      >&2; fi
+	fi
+	if ((doShowMsg_ErrFields)); then
+		echo -e "Signal ...: ${signal}"      >&2
+		echo -e "Exit code : ${exitCode}"    >&2
+		echo -e "At line ..: ${lineNum}"     >&2
+		echo -e "Command ..: ${errCommand}"  >&2
+	fi
+	((doShowMsg_CallStack)) && _fError_ShowCallStack
+	if ((doForceEcho_AtBottom)); then
+		FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
+	#	[[ "${__fError_JustDidEmptyForceEcho:-}" != "1" ]] && FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
+	#	__fError_JustDidEmptyForceEcho=1
 	fi
 	__fError_ExitCode_Previous=${_exitCode}
-#	if [[ "${__fError_DoIgnore:-}" == "1" ]] && [[ "${signal}" != "EXIT" ]]; then :
-#		## If ignoring errors, and aren't in the EXIT stage
-#		((! __fError_JustDidEmptyForceEcho)) && FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
-	else
+	if ((doRunCallerCleanup)); then
 		## Run caller cleanup function (exactly once for every exit condition clean or error - except untrappable kill -9).
 		__fError_WasCleanupRun=1
 		fCleanup  ## User cleanup; always fire once on final exit, to allow caller to cleanup logfiles etc.
-		((__fError_DoIgnore)) && { true; exitCode=0; }
-		if ((__fError_doExitNotReturn)); then exit ${exitCode}; else return  ${exitCode}; fi
 	fi
+	((isSubshell && isUnexpectedError)) && exitCode=$ERRNUM_MSG_ALREADY_SHOWN
+	((doExit))     && exit ${exitCode}
+	((doReturn))   && return ${exitCode}
+	((isIgnoring)) && { true; exitCode=0; }
 }
 fError_DefineTrap_Fatal(){       :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_DoIgnore=0      ; set -e; }  ## Standard `set -e` behavior.
 fError_DefineTrap_Ignore(){      :; _exitCode=0 ; __fError_ExitCode_Previous=0; __fError_DoIgnore=1      ; set +e; }  ## Eats errors and returns true.
@@ -317,9 +310,11 @@ fError_DefineBehavior_Return
 ##     functions frequently in tight long-running loops, that aren't dominated
 ##     by other much longer-running lines of code.)
 ## OK if redundant with same definitions in global scope loaded at script start.
-declare -gi _wasLastEchoBlank=0
-declare -gi _isEchoInRawInlineMode=0
-declare -gi FECHO_NEXT_TO_STDERR=0    ## Only the next fEcho*() will go to stderr.
+if [[ ! -v FECHO_NEXT_TO_STDERR ]]; then
+	declare -gi FECHO_NEXT_TO_STDERR=0    ## Only the next fEcho*() will go to stderr.
+	declare -gi _wasLastEchoBlank=0
+	declare -gi _isEchoInRawInlineMode=0
+fi
 fEcho_Clean_byref(){
 	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
 	local -n ptr_ToEcho_t5jf2=$1
@@ -336,9 +331,9 @@ fEcho_Clean_byref(){
 	fi; }
 fEcho_ResetBlankCounter()     { _wasLastEchoBlank=0;      }
 fEcho_WasLastEchoBlank_Set()  { { [[ "${1:-}" == "1" ]] && _wasLastEchoBlank=1; } || _wasLastEchoBlank=0;  }
-fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
+fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || if ((_isEchoInRawInlineMode)); then echo; _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; fi; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
-fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_CUSTOM_GENERAL}; }
+fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 fEcho_Clean()                 { local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
 fEcho()                       { { [[ -z "${1:-}" ]] && fEcho_Clean ""; } || { local -r toEcho="[ ${1:-} ]"; fEcho_Clean_byref toEcho; }; }
 fEcho_Force()                 { _wasLastEchoBlank=0; fEcho "${1:-}"; }
@@ -351,7 +346,7 @@ fEcho_Clean_Force()           { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; f
 
 ## Check if sourced
 declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t5hpa=1
-((isSourced_t5hpa)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_CUSTOM_GENERAL}; }
+((isSourced_t5hpa)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Validate this module interface as implemented by consuming script.
 [[ -n "${THIS_FILEPATH:-}"  ]]  ||  fThrowError "The constant 'THIS_FILEPATH' must be defined by the calling script, for this module to work."
@@ -379,7 +374,7 @@ declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##		- 20260517 JC: Created.
 ##		- 20260521 JC:
 ##			- Refactor and simplification of error-handling functions, including:
-##				- Replaced all occurrences of `return 1` and `exit 1` with `return ${ERRNUM_CUSTOM_GENERAL}` and `exit ${ERRNUM_CUSTOM_GENERAL}`
+##				- Replaced all occurrences of `return 1` and `exit 1` with `return ${ERRNUM_MSG_ALREADY_SHOWN}` and `exit ${ERRNUM_MSG_ALREADY_SHOWN}`
 ##				- Rationalized signal traps; covers all signals.
 ##				- Added ability to dynamically define `return` or `exit` as error-handling behavior. Defaults to `return`.
 ##				- Removed passing `$_`, which is unreliable.

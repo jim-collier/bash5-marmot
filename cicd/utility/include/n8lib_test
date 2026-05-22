@@ -6,6 +6,7 @@
 # shellcheck disable=2002  ## Useless use of cat. This works well though and I don't want to break it for the sake of syntax purity.
 # shellcheck disable=2004  ## Inappropriate complaining of "$/${} is unnecessary on arithmetic variables."
 # shellcheck disable=2034  ## Unused variables.
+# shellcheck disable=2086  ## 'Double quote to prevent globbing and word splitting.' (OK for integers.)
 # shellcheck disable=2119  ## Disable confusing and inapplicable warning about function's $1 meaning script's $1.
 # shellcheck disable=2120  ## OK with declaring variables that accept arguments, without calling with arguments (this is 'overloading').
 # shellcheck disable=2143  ## Used grep -q instead of echo | grep
@@ -15,7 +16,6 @@
 # shellcheck disable=2181
 # shellcheck disable=2207
 # shellcheck disable=2317  ## Can't reach
-
 
 ##	Purpose: CI/CD-friendly test harness that passes or fails.
 ##	History: At bottom of this file. (Note: History for this is maintained outside of [or in addition to] git project.)
@@ -27,12 +27,25 @@
 
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Globals
+
+if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
+	## Settings
+	declare -gri ABORT_ON_FIRST_ERROR=1
+	## Internal members
+	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
+	declare -gi  currentPassStreak=0
+	declare -g   __fRunTest_EchoHook1=""
+fi
+
+
+#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 # Generic code
 
 fEntryPoint(){
 
 	## Test if fMain exists in calling script
-	declare -F fMain_Test &> /dev/null ||  { echo -e "\nError in ${meName_t4rge}.${FUNCNAME[0]}(): Calling script must have a function named 'fMain_Test()'.\n"; return 1; }
+	declare -F fMain_Test &> /dev/null ||  { echo -e "\nError in ${meName_t4rge}.${FUNCNAME[0]}(): Calling script must have a function named 'fMain_Test()'.\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 	local -i count_Tests=0
 	local -i count_Passed=0
@@ -46,22 +59,88 @@ fEntryPoint(){
 	fEcho_Clean "Failed ..............: ${count_Failed}"
 	fEcho_Clean "Expected errors .....: ${count_Errors_Expected}"
 	fEcho_Clean "Unexpected errors ...: ${count_Errors_Unexpected}"
-	fEcho_Clean
 
-	((count_Failed == 0))  ||  return 1
+	((count_Failed == 0))  ||  return ${ERRNUM_MSG_ALREADY_SHOWN}
 
 }
 
-declare -i currentPassStreak=0
-declare    __fRunTest_EchoHook1=""
+fRunTest_Compare_v1(){
+	## Args
+	local -r  assertMode="${1:-}"  ; shift || :  ## 'equal', 'notequal'.
+	local -r  gotVal="${1:-}"      ; shift || :  ## Arg <REQUIRED>: Test val, e.g. from output of a command.
+	local -r  expectVal="${1:-}"   ; shift || :
+	local -r  addComment="${1:-}"  ; shift || :  ## Arg [optional]: Brief comment to include in output.
+
+	## Variables
+	local -ri prevCount_Passed=${count_Passed}
+	local -ri prevCount_Failed=${count_Failed}
+	local  -i doConditionalAbort=0
+
+	((++count_Tests))
+
+	##DEBUG
+	#echo
+	#echo "fRunTest_Compare_v1():"
+	#echo "assertMode ...: '${assertMode}'"
+	#echo "gotVal .......: '${gotVal}'"
+	#echo "expectVal ....: '${expectVal}'"
+	#echo "addComment ...: '${addComment}'"
+
+	## Run the test
+	fTallyResult  0  "${assertMode}"  "${gotVal}"  "${expectVal}"
+
+	## Show output based on test results
+
+	fEcho_Clean
+
+	if ((count_Passed > prevCount_Passed)); then
+		## Action if the test passed; includes "successful" error caught above.
+		currentPassStreak=$count_Passed
+		fEcho_Clean "✅ Passed: Test# ${count_Tests} [Test mode: '${assertMode}']"
+	elif ((count_Failed > prevCount_Failed)); then
+		## Action if the test failed
+		currentPassStreak=0
+		fEcho_Clean "⛔ FAILED: Test# ${count_Tests} [Test mode: '${assertMode}']"
+		doConditionalAbort=1
+	fi
+
+	fEcho_Clean "Expected value .: '${expectVal}'"
+	fEcho_Clean "Actual value ...: '${gotVal}'"
+#	fEcho_Clean
+
+	if ((ABORT_ON_FIRST_ERROR)) && ((doConditionalAbort)); then
+		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
+		FECHO_NEXT_TO_STDERR=1 fEcho_Clean
+		FECHO_NEXT_TO_STDERR=1 fEcho_Clean "[ ${meName_t4rge}.${FUNCNAME[0]}(): Exiting on first error as instructed."
+	#	fEcho_Clean_Force
+		trap - ERR
+		set -e
+		return ${ERRNUM_MSG_ALREADY_SHOWN}
+	fi
+
+}
+
+
+## Original name alias and interface, for backwards compatibility.
+## The order of arguments in fRunTest_ExecCmd_v1()
+##   are different than this backwards-compatible alias.
 fRunTest(){
 	## Args
-	local -r  testMode="${1:-}"   ; shift || true   ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
-	local -r  expectVal="${1:-}"  ; shift || true   ## Inherit from parent instead.
-	local -r  cmdStr="${1:-}"     ; shift || true
+	local -r  assertMode="${1:-}"  ; shift || :  ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
+	local -r  expectVal="${1:-}"   ; shift || :
+	local -r  cmdStr="${1:-}"      ; shift || :
+	## Pass different order of arguments than received.
+	fRunTest_ExecCmd_v1 "${assertMode}"  "${cmdStr}"  "${expectVal}"
+}
 
-	## Settings
-	local -ri doConditionalAbortOnFirstError=1
+## New v1 name and interface.
+## The order of arguments are different, but the code is the same as
+##   fRunTest().
+fRunTest_ExecCmd_v1(){
+	## Args
+	local -r  assertMode="${1:-}"  ; shift || :  ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
+	local -r  cmdStr="${1:-}"      ; shift || :
+	local -r  expectVal="${1:-}"   ; shift || :
 
 	## Variables
 	local  -i errNum=0
@@ -75,19 +154,20 @@ fRunTest(){
 	((++count_Tests))
 
 	## Run the test
-	if [[ "${testMode}" ==  'err'* ]]; then
+	if [[ "${assertMode}" ==  'err'* ]]; then
 		isExpectingError=1
 		fEcho; fEcho "Test #${count_Tests} Expecting error, BEGIN ..."
 		set +e
+			sleep 0.5  ## Give buffered stdout time to sync with unbuffered stdout, usually.
 			gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
-			sleep 0.125  ## Give output time to sync
-		set -e
+		:; set -e
 		fEcho "Test #${count_Tests} Expecting error, END."; fEcho
 		isExpectingError=0
 	else
+		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
 		gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
 	fi
-	fTallyResult  $errNum  "${testMode}"  "${expectVal}"  "${gotVal}"
+	fTallyResult  $errNum  "${assertMode}"  "${gotVal}"  "${expectVal}"
 
 	if ((count_Errors_Expected > prevCount_Errors_Expected)); then
 		## Action if the test errored as expected
@@ -102,15 +182,15 @@ fRunTest(){
 		## Action if the test passed; includes "successful" error caught above.
 	#	{ ((currentPassStreak <= 0)) && fEcho_Clean; echo -n "Test #s passed: ${count_Tests}, "; } || echo -n "${count_Tests}, "; fEcho_IsInRawInlineMode_Set 1
 		currentPassStreak=$count_Passed
-		fEcho_Clean "✅ Passed: Test# ${count_Tests} [Test mode: '${testMode}']"
+		fEcho_Clean "✅ Passed: Test# ${count_Tests} [Test mode: '${assertMode}']"
 	elif ((count_Failed > prevCount_Failed)); then
 		## Action if the test failed
 		currentPassStreak=0
-		fEcho_Clean "⛔ FAILED: Test# ${count_Tests} [Test mode: '${testMode}']"
+		fEcho_Clean "⛔ FAILED: Test# ${count_Tests} [Test mode: '${assertMode}']"
 		doConditionalAbort=1
 	elif ((count_Errors_Unexpected > prevCount_Errors_Unexpected)); then
 		## Action if the test UN-expectedly errored
-		fEcho_Clean "⚠️ Errored unexpectedly: Test# ${count_Tests} [Test mode: '${testMode}']"
+		fEcho_Clean "⚠️ Errored unexpectedly: Test# ${count_Tests} [Test mode: '${assertMode}']"
 		doConditionalAbort=1
 	fi
 
@@ -122,23 +202,42 @@ fRunTest(){
 	fEcho_Clean "Actual value ...: '${gotVal}'"
 	fEcho_Clean
 
-	if ((doConditionalAbortOnFirstError)) && ((doConditionalAbort)); then
-		fEcho_Clean
-		echo "[ ${meName_t4rge}.${FUNCNAME[0]}(): Exiting on first error as instructed." 1>&2
-		fEcho_Clean_Force
+	if ((ABORT_ON_FIRST_ERROR)) && ((doConditionalAbort)); then
+		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
+		FECHO_NEXT_TO_STDERR=1 fEcho_Clean "[ ${meName_t4rge}.${FUNCNAME[0]}(): Exiting on first error as instructed."
+	#	FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
 		trap - ERR
 		set -e
-		return 1
+		return ${ERRNUM_MSG_ALREADY_SHOWN}
 	fi
 
 :;}
 
-##
+## Original name alias and interface, for backwards compatibility.
+## The order of arguments in fRunTest_ExecChainedCmds_TestLastOutput_v1()
+##   are different than this backwards-compatible alias.
 fRunChained_TestLast(){
 	## Args
-	local -r  testMode="${1:-}"   ; shift || true   ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
-	local -r  expectVal="${1:-}"  ; shift || true   ## Inherit from parent instead.
-	local -r  cmdStrs="${1:-}"    ; shift || true   ## >=1 commands with ';' as delimiter.
+	local -r  assertMode="${1:-}"  ; shift || :   ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
+	local -r  expectVal="${1:-}"   ; shift || :   ##
+	local -r  cmdStrs="${1:-}"     ; shift || :   ## >=1 commands with ';' as delimiter.
+	## Pass different order of arguments than received.
+	fRunTest_ExecChainedCmds_TestLastOutput_v1 "${assertMode}"  "${cmdStr}"  "${expectVal}"
+}
+
+## New v2 (WIP)
+fRunTest_ExecChainedCmds_TestLastOutput_v2(){ :
+	##	TODO: Same as the v1, but with this cmdStrs as an array, and accept as `local -n`.
+}
+
+## New v1 name and interface.
+## The order of arguments are different, but the code is the same as
+##   OG name 'fRunChained_TestLast'
+fRunTest_ExecChainedCmds_TestLastOutput_v1(){
+	## Args
+	local -r  assertMode="${1:-}"  ; shift || :   ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
+	local -r  cmdStrs="${1:-}"     ; shift || :   ## >=1 commands with ';' as delimiter.
+	local -r  expectVal="${1:-}"   ; shift || :   ##
 	## Variables
 	local -a  cmdArr=()
 	local -a  cmdOutputs=()
@@ -154,10 +253,11 @@ fRunChained_TestLast(){
 		nextCmd="${cmdArr[i]}"
 		nextCmd="${nextCmd#"${nextCmd%%[![:space:]]*}"}"
 		nextCmd="${nextCmd%"${nextCmd##*[![:space:]]}"}"
+		## Substitute macro %CMDn_OUTPUT% with output from that command index.
 		((i > 0))  &&  nextCmd="${nextCmd//"%CMD${i}_OUTPUT%"/"${cmdOutputs[i-1]:-}"}"  ## '%CMDn_OUTPUT%' is 1-based, array is 0-based.
 		if ((i == lastNonEmptyIdx)); then
 			## It's the last one so test it
-			fRunTest  "${testMode}"  "${expectVal}"  "${nextCmd}"
+			fRunTest  "${assertMode}"  "${expectVal}"  "${nextCmd}"
 		else
 			## Run normally
 			cmdOutputs[i]="$(eval "${nextCmd}")"
@@ -168,12 +268,14 @@ fRunChained_TestLast(){
 ##
 ## Shows piped input  terminal but truncated to terminal width. Also logs the whole line to a date/time-stamped file. Handles wide unicode.
 ##
-declare    __fPipe_LogAndShowPartialOutput_LogFile=""
-declare -i __fPipe_Log_isInitialized=0
+
+declare -g  __fPipe_LogAndShowPartialOutput_LogFile=""
+declare -gi __fPipe_Log_isInitialized=0
+
 fPipe_LogAndShowPartialOutput_InitLogfile(){
-	local filePath_Log="${1:-}" ; shift || true  ## If you want to override the logfile path. Otherwise it's the path of this script+basename, + '.log'.
+	local filePath_Log="${1:-}" ; shift || :  ## If you want to override the logfile path. Otherwise it's the path of this script+basename, + '.log'.
 	[[ -n "${filePath_Log}" ]]  ||  filePath_Log="${BASH_SOURCE[0]%.*}.log"
-	[[ -d "$(dirname "${filePath_Log}")" ]]  ||  { echo -e "\nError in ${meName_t4rge}.${FUNCNAME[0]}(): Directory for logfile not found: '$(dirname "${filePath_Log}")'.\n" ; return 1; }
+	[[ -d "$(dirname "${filePath_Log}")" ]]  ||  { echo -e "\nError in ${meName_t4rge}.${FUNCNAME[0]}(): Directory for logfile not found: '$(dirname "${filePath_Log}")'.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	[[ -f "${filePath_Log}.prev" ]] && rm                    "${filePath_Log}.prev"
 	[[ -f "${filePath_Log}"      ]] && rm                    "${filePath_Log}"
 	__fPipe_LogAndShowPartialOutput_LogFile="${filePath_Log}"
@@ -181,6 +283,7 @@ fPipe_LogAndShowPartialOutput_InitLogfile(){
 	touch "${__fPipe_LogAndShowPartialOutput_LogFile}"
 	__fPipe_Log_isInitialized=1
 }
+
 fPipe_LogAndShowPartialOutput() {
 
 	local LC_ALL=C.UTF-8
@@ -217,8 +320,10 @@ fPipe_LogAndShowPartialOutput() {
 			fi
 		done
 		printf '%s\n' "$line"
+		_wasLastEchoBlank=0  ## Rather than call fEcho_ResetBlankCounter(), take advantage of leaky abstraction for speed.
 	done
 }
+
 fPipe_LogOnly() {
 	((! __fPipe_Log_isInitialized)) && return
 	## Send stderr to this, e.g. somecmd 2> >(fPipe_LogOnly >&2) | fPipe_LogAndShowPartialOutput
@@ -237,9 +342,9 @@ fGetIsolatedExeName(){
 	## If called like: fGetIsolatedExeName  executableName  theRestOfCommand  "'/my/path/to/MyExecutable' --arg1 'arg2'", this function will:
 	##	- Set caller's variable $executableName to "MyExecutable".
 	##	- Set caller's variable $theRestOfCommand to " --arg1 'arg2'".
-	local -n  retVarName_CmdName_1myq1b5="${1:-}"   ; shift || true   ## The parent variable to populate with the isolated command 'basename' (no path).
-	local -n  retVarName_TheRest_1myq1b5="${1:-}"   ; shift || true   ## The parent variable to populate with the rest of the command-line after the executable.
-	local -r  commandString="${1:-}"                ; shift || true   ## The full command line
+	local -n  retVarName_CmdName_1myq1b5="${1:-}"   ; shift || :   ## The parent variable to populate with the isolated command 'basename' (no path).
+	local -n  retVarName_TheRest_1myq1b5="${1:-}"   ; shift || :   ## The parent variable to populate with the rest of the command-line after the executable.
+	local -r  commandString="${1:-}"                ; shift || :   ## The full command line
 	retVarName_CmdName_1myq1b5=""
 	retVarName_TheRest_1myq1b5=""
 	local isolatedExeName=""
@@ -255,10 +360,10 @@ fGetIsolatedExeName(){
 fScrambleString(){
 
 	## Args
-	local -n  outputVarName_1myn9vt=${1:-}   ; shift || true  ## The parent variable to put the results in. The results should have no spaces, unless a space is one of the inputs as a symbol to randomize. But will still work with spaces.
-	local -r  inputSymbolList="${1:-}"       ; shift || true  ## List of symbols to scramble, as a regular UTF-8 bash string. Will have no spaces or delimiters, unless a space is one of the inputs as a symbol to randomize.
-	local -ri outputLen=${1:-1}              ; shift || true  ## Output scrambled string length
-	local -ri canRepeatChars=${1:-1}         ; shift || true  ## 0: Don't repeat any symbols if possible (i.e. if input len > output len). 1: Try to repeat symbols in the random output.
+	local -n  outputVarName_1myn9vt=${1:-}   ; shift || :  ## The parent variable to put the results in. The results should have no spaces, unless a space is one of the inputs as a symbol to randomize. But will still work with spaces.
+	local -r  inputSymbolList="${1:-}"       ; shift || :  ## List of symbols to scramble, as a regular UTF-8 bash string. Will have no spaces or delimiters, unless a space is one of the inputs as a symbol to randomize.
+	local -ri outputLen=${1:-1}              ; shift || :  ## Output scrambled string length
+	local -ri canRepeatChars=${1:-1}         ; shift || :  ## 0: Don't repeat any symbols if possible (i.e. if input len > output len). 1: Try to repeat symbols in the random output.
 
 	## Required for splitting
 	local LC_ALL=C.UTF-8   ## function-scoped; restored on return
@@ -269,7 +374,7 @@ fScrambleString(){
 	local -a chars=() shuffled=()
 
 	## Validate
-	{ [[ -z "${inputSymbolList}" ]] || ((inputLen <= 0)); }  &&  { echo -e "\n[ $(date "+%Y%m%d-%H%M%S.%N") ]  Error in ${meName_t4rge}.${FUNCNAME[0]}(): Input symbol list is empty.\n"; exit 1; }
+	{ [[ -z "${inputSymbolList}" ]] || ((inputLen <= 0)); }  &&  { echo -e "\n[ $(date "+%Y%m%d-%H%M%S.%N") ]  Error in ${meName_t4rge}.${FUNCNAME[0]}(): Input symbol list is empty.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 	## Split UTF-8 input into individual characters (bash string indexing is char-based in a UTF-8 locale).
 	for (( i=0; i<inputLen; i++ )); do
@@ -302,24 +407,33 @@ fScrambleString(){
 }
 
 fTallyResult(){
-	local -ri errNum=${1:-0}      ; shift || true  ## The integer return value from the command.
-	local -r  testMode="${1:-}"   ; shift || true  ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
-	local -r  expectVal="${1:-}"  ; shift || true  ##
-	local -r  gotVal="${1:-}"     ; shift || true  ##
-	case "${testMode,,}" in
+	local -ri errNum=${1:-0}       ; shift || :  ## The integer return value from the command.
+	local -r  assertMode="${1:-}"  ; shift || :  ## 'equal', 'notequal', 'error', 'noerror'.  The latter two do no comparisons and accept any 'expectVal'.
+	local -r  gotVal="${1:-}"      ; shift || :  ##
+	local -r  expectVal="${1:-}"   ; shift || :  ##
+	case "${assertMode,,}" in
 		'eq'*|'pass'|'='|'==')      { [[ "${expectVal}"  ==  "${gotVal}" ]]  &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
 		'noteq'*|'fail'|'!='|'<>')  { [[ "${expectVal}"  !=  "${gotVal}" ]]  &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
 		'err'*)                     { ((errNum != 0))                        &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
 		'no_err'*|'noerr'*)         { ((errNum == 0))                        &&  ((++count_Passed)); }  ||  ((++count_Failed))   ;;
-		*)                          fEcho_Clean "Error in $(basename "${0}").${FUNCNAME[0]}(): Unexpected second argument. Should be 'equal', 'notequal', or 'error'."; return 1  ;;
+		*)                          fEcho_Clean "Error in $(basename "${0}").${FUNCNAME[0]}(): Unexpected second argument. Should be 'equal', 'notequal', or 'error'."; return ${ERRNUM_MSG_ALREADY_SHOWN}  ;;
 	esac
+
+	##DEBUG
+	#echo
+	#echo "fTallyResult():"
+	#echo "errNum .......: '${errNum}'"
+	#echo "assertMode ...: '${assertMode}'"
+	#echo "gotVal .......: '${gotVal}'"
+	#echo "expectVal ....: '${expectVal}'"
+
 :;}
 
 fResolvePath_t4rge(){
 	## First looks at specified raw path. Next, same path but relative to this script. Next, in $PATH for an executable. Next, in this script's path, + /lib, /include, then /includes.
-	local -n parentVarName_ResolvedPath_t4rej=${1:-}  ; shift || true  ## Parent variable to store fully resolved path in.
-	local    nameOrPath="${1:-}"                      ; shift || true  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
-	[[   -z "${nameOrPath}" ]]  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): No path specified to resolve.\n"; fEcho_WasLastEchoBlank_Set 1; return 1; }
+	local -n parentVarName_ResolvedPath_t4rej=${1:-}  ; shift || :  ## Parent variable to store fully resolved path in.
+	local    nameOrPath="${1:-}"                      ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
+	[[   -z "${nameOrPath}" ]]  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): No path specified to resolve.\n"; fEcho_WasLastEchoBlank_Set 1; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	local -r mePath_t4rge_t4rfg="$(dirname "${BASH_SOURCE[0]}")"
 	local -i isNopathObject=0 ; [[ "${nameOrPath}" == "$(basename "${nameOrPath}")" ]] && isNopathObject=1 ; readonly isNopathObject
 	local    testPath="${nameOrPath}"
@@ -328,46 +442,66 @@ fResolvePath_t4rge(){
 	{ [[ ! -e "${testPath}"   ]] && ((isNopathObject)); }  &&  testPath="${mePath_t4rge_t4rfg}/lib/${nameOrPath}"
 	{ [[ ! -e "${testPath}"   ]] && ((isNopathObject)); }  &&  testPath="${mePath_t4rge_t4rfg}/include/${nameOrPath}"
 	{ [[ ! -e "${testPath}"   ]] && ((isNopathObject)); }  &&  testPath="${mePath_t4rge_t4rfg}/includes/${nameOrPath}"
-	  [[ ! -e "${testPath}"   ]]                           &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔc].\n"; fEcho_WasLastEchoBlank_Set 1; return 1; }
+	  [[ ! -e "${testPath}"   ]]                           &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔc].\n"; fEcho_WasLastEchoBlank_Set 1; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	testPath="$(realpath -e "${testPath}" 2>/dev/null || true)"
 	## Last check to fail on
-	{ [[ -n "${testPath}" ]] && [[ -e "${testPath}" ]]; } || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; fEcho_WasLastEchoBlank_Set 1; return 1; }
+	{ [[ -n "${testPath}" ]] && [[ -e "${testPath}" ]]; } || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve path '${nameOrPath}' [£ǝŔs].\n"; fEcho_WasLastEchoBlank_Set 1; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Success
 	parentVarName_ResolvedPath_t4rej="${testPath}"
 }
 
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Echo-related (minified but not obfuscated)
-declare -gi _wasLastEchoBlank=0
-declare -gi _isEchoInRawInlineMode=0
+## Purpose:
+##   - Lets callers not worry about the often careful planning and/or extra
+##     logic required just to avoid repeating empty lines in stdout output to
+##     users. Many programmers wind up adding basic logic like this anyway.
+##     Also, regular fEcho() outputs a formatted version like this:
+##     "[ OUTPUT ]".
+## Notes:
+##   - Call fEcho_ResetBlankCounter(), after stdout that you don't control
+##     (e.g. from external programs), and its last line is non-blank.
+##   - There's room for non-trivial performance improvement here, by removing
+##     the extra indirections done for code efficiency. That would basically
+##     mean doing what real compilers do as part of optimization, and duplicate
+##     the code for each function that uses it. This could improve performance
+##     in long-running loops significantly. (Alternately, don't use these
+##     functions frequently in tight long-running loops, that aren't dominated
+##     by other much longer-running lines of code.)
+## OK if redundant with same definitions in global scope loaded at script start.
+if [[ ! -v FECHO_NEXT_TO_STDERR ]]; then
+	declare -gi FECHO_NEXT_TO_STDERR=0    ## Only the next fEcho*() will go to stderr.
+	declare -gi _wasLastEchoBlank=0
+	declare -gi _isEchoInRawInlineMode=0
+fi
+fEcho_Clean_byref(){
+	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
+	local -n ptr_ToEcho_t5jf2=$1
+	local -i doEcho=0
+	## End 'InRawInlineMode'; Duplicate functionality of `fEcho_IsInRawInlineMode_Set 0`; only to stdout.
+	if ((_isEchoInRawInlineMode)); then echo; _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; fi
+	## Logic
+	if   [[ -n "${ptr_ToEcho_t5jf2}" ]] ; then doEcho=1 ; _wasLastEchoBlank=0
+	elif ((! _wasLastEchoBlank))        ; then doEcho=1 ; _wasLastEchoBlank=1 ; fi
+	## Do
+	if ((doEcho)); then
+		if ((FECHO_NEXT_TO_STDERR)); then echo -e "${ptr_ToEcho_t5jf2}" >&2 ; FECHO_NEXT_TO_STDERR=0
+		else                              echo -e "${ptr_ToEcho_t5jf2}"                              ; fi
+	fi; }
 fEcho_ResetBlankCounter()     { _wasLastEchoBlank=0;      }
 fEcho_WasLastEchoBlank_Set()  { { [[ "${1:-}" == "1" ]] && _wasLastEchoBlank=1; } || _wasLastEchoBlank=0;  }
-fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return 1; }
-fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || { _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; echo; }; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
-fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return 1; }
-fEcho_Clean_byref(){
-	## Validate nameref args:
-	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
-	## Gather args
-	local -n ptr_ToEcho_t5jf2=$1
-	## Logic
-	((_isEchoInRawInlineMode)) && fEcho_IsInRawInlineMode_Set 0
-	if [[ -n "${ptr_ToEcho_t5jf2}" ]]; then
-		echo -e "${ptr_ToEcho_t5jf2}"
-		_wasLastEchoBlank=0
-	elif [[ $_wasLastEchoBlank -eq 0 ]]; then
-		echo
-		_wasLastEchoBlank=1
-	fi
-}
-fEcho_Clean()        { local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
-fEcho()              { { [[ -z "${1:-}" ]] && fEcho_Clean ""; } || { local -r toEcho="[ ${1:-} ]"; fEcho_Clean_byref toEcho; }; }
-fEcho_Force()        { _wasLastEchoBlank=0; fEcho "${1:-}"; }
-fEcho_Clean_Force()  { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
+fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || if ((_isEchoInRawInlineMode)); then echo; _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; fi; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
+fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+fEcho_Clean()                 { local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
+fEcho()                       { { [[ -z "${1:-}" ]] && fEcho_Clean ""; } || { local -r toEcho="[ ${1:-} ]"; fEcho_Clean_byref toEcho; }; }
+fEcho_Force()                 { _wasLastEchoBlank=0; fEcho "${1:-}"; }
+fEcho_Clean_Force()           { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
 
 ## Error-handling
-declare -i isExpectingError=0
-declare -i count_Errors_Unexpected=0
-declare -i count_Errors_Expected=0
+declare -gi isExpectingError=0
+declare -gi count_Errors_Unexpected=0
+declare -gi count_Errors_Expected=0
 #trap 'printf "(line %s) " "$LINENO" "$?" >&2; echo; { ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_Errors_Unexpected))' ERR
 trap '{ ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_Errors_Unexpected))' ERR
 
@@ -376,7 +510,7 @@ trap '{ ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_
 ## Script entry point
 
 ## Error and exit settings
-## Actually, let's assume caller is responsible, and no do surprise overrides.
+## Actually, these should already be set by caller. Let's not do surprise overrides.
 #set   -u  ## Require variable declaration. Stronger than mere linting. But can struggle if functions are in sourced files.
 #set   -e  #...................: Exit on errors. This is inconsistent (made a little better with settings below), so eventually may move to 'set +e' (which is more constant work and mental overhead).
 #set   -E  #...................: Propagate ERR trap settings into functions, command substitutions, and subshells.
@@ -388,13 +522,13 @@ trap '{ ((isExpectingError))  &&  ((++count_Errors_Expected)); }  ||  ((++count_
 
 ## Only allow running 'sourced'.
 declare -i isSourced_t4rhs; { (return 0 2>/dev/null) && isSourced_t4rhs=1; } || isSourced_t4rhs=0
-((! isSourced_t4rhs)) && { echo -e "\nThis script is meant to be 'sourced' from within another script.\n"; exit 1; }
+((! isSourced_t4rhs)) && { echo -e "\nThis script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 if [[ -z "${meName_t4rge+x}" ]]; then
-	declare -r mePath_t4rge="${BASH_SOURCE[0]}"
-	declare -r meName_t4rge="$(basename "${mePath_t4rge}")"
-	declare -r meDir_t4rge="$(dirname "${mePath_t4rge}")"
-	declare -r serialDT_t4rge="$(date "+%Y%m%d-%H%M%S")"
+	declare -gr mePath_t4rge="${BASH_SOURCE[0]}"
+	declare -gr meName_t4rge="$(basename "${mePath_t4rge}")"
+	declare -gr meDir_t4rge="$(dirname "${mePath_t4rge}")"
+	declare -gr serialDT_t4rge="$(date "+%Y%m%d-%H%M%S")"
 fi
 
 ## The calling script should do the next two lines, so that the log file goes in the right place without even more convoluted logic:
@@ -404,13 +538,22 @@ fi
 
 
 
-##	Script history:
-##		- 20260420 JC: Copied for convert-base-v2.
+#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+##	Library history:
+##		- 20260420 JC: Created for convert-base-v2.
 ##		- 20260421 JC: Added polish.
-##		- 20260423 JC: Added fRunChained_TestLast() to be able to test commands that can't be piped.
+##		- 20260423 JC: Added fRunChained_TestLastCmdInChain() to be able to test commands that can't be piped.
 ##		- 20260424 JC: Made generic.
 ##		- 20260518 JC: Changed calling fMain() to fMain_Test().
 ##		- 20260519 JC:
 ##			- Updated fEcho_* to template canonical.
 ##			- Changed license from GPL 2, to MIT.
-##			- Fixed an egregious regression in fScrambleString() whose fix wasn't pushed upstream, where $inputSymbolList validation was validated literally as `[[ -z "" ]`.
+##			- Fixed an egregious regression in fScrambleString() whose fix wasn't pushed upstream, where $inputSymbolList validation was validated literally as `[[ -z "" ]`, and always failed.
+##		- 20260521 JC:
+##			- Renamed some OG functions and changed order of arguments, and
+##				- Made aliases to them with original arg order, for full backwards compatibility.
+##				- The reason is to be more consistend with n8mod_unittest_v1.
+##				- There are many pros and cons to either order, as evidenced by many CLI tools
+##				  that standardize on one or the other order. In this case, it was easier to change
+##				  this script to match, than those in n8mod_unittest.
+##				- Changed arg order in internal fTallyResults() to match.
