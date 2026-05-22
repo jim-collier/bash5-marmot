@@ -76,38 +76,85 @@ fMain_Test(){
 	fEcho_Clean
 
 	## Environment overrides
-	local LANG="C.UTF-8"  ## Splitting won't work correctly without this
+	local -r LANG="C.UTF-8"  ## Splitting won't work correctly without this
 
 	## Variables
-	local inputVal=""  expectVal=""  gotVal=""  tmpVal=""
+	local inputStr=""  expectStr=""  gotStr=""  tmpStr=""
+	local -i gotInt=0 expectInt=0
 	local -i loopCount=0
 
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 	fUnitTest_PrintSectionHeader  "n8mod_core_v1"
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	fRunTest_ExecCmd_v1  'error'  'fIsFunction NOTAFUNC'
-	fGetOgUserName inputVal ; fRunTest_Compare_v1  '=='  "${inputVal}"  "${USER}"
-	fGetOgUserHome inputVal ; fRunTest_Compare_v1  '=='  "${inputVal}"  "${HOME}"
+	## fIsFunction
+	fRunTest_ExecCmd_v1  'error'    'fIsFunction  NOTAFUNC'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsFunction  fMain_Test'
+	## fGetOgUserName
+	fGetOgUserName inputStr ; fRunTest_Compare_v1  '=='  "${inputStr}"  "${USER}"
+	## fGetOgUserHome
+	fGetOgUserHome inputStr ; fRunTest_Compare_v1  '=='  "${inputStr}"  "${HOME}"
+
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_number_v1"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	## fIsBool
+	fRunTest_ExecCmd_v1  'error'    'fIsBool  0.32'
+	fRunTest_ExecCmd_v1  'error'    'fIsBool  xyz'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  0'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  1'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  100'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  f'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  false'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  no'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  true'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  y'
+	## fIsBoolTrue
+	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  '
+	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  0'
+	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  BOGUSVAL'
+	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  F'
+	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  no'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  1'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  50'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  T'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  true'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  y'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  Y'
+	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  yes'
+	## fGetRandomInt
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt   100         10'
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt  -100        100'
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt   1      1000000'
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt  -1   1000000000'
+	fRunTest_ExecCmd_v1  'error'    'fGetRandomInt  gotInt   1  10000000000'  ## Range is too large.
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  0  0'"
+		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
+		for i in {1..10}; do
+			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  0  0 ; echo -n "${gotInt}, "
+		done;:; fEcho_Clean_Force
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  0  1'"
+		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
+		for i in {1..10}; do
+			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  0  1 ; echo -n "${gotInt}, "
+		done;:; fEcho_Clean_Force
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  10  0'"
+		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
+		for i in {1..100}; do
+			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  10  0 ; echo -n "${gotInt}, "
+		done;:; fEcho_Clean_Force
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  -100  100'"
+		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
+		for i in {1..100}; do
+			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  -100  100 ; echo -n "${gotInt}, "
+		done;:; fEcho_Clean_Force
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  0  1000000'"
+		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
+		for i in {1..100}; do
+			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  0  1000000 ; echo -n "${gotInt}, "
+		done;:; fEcho_Clean_Force
 
 
 
-#	fUnitTest_PrintSectionHeader  "n8mod_number_v1"
-#	fRunTest  '=='  "${expectVal}"  "fIsBool  ${inputVal}  128v1compat"
-return 0
-
-
-	fEcho; fEcho ">>> TESTSECTION: "; fEcho
-
-	fRunTest  'error'  "${expectVal}"  "'${exe1}'  '${inputVal}'  bogusBaseName" #......: This one should fail
-	fRunTest  '=='  "${expectVal}"  "'${exe1}'  ${inputVal}  128v1compat"
-	fRunTest  '=='  "${expectVal}"  "'${exe1}'  ${inputVal}  128jc1"
-
-	expectVal="FrĜЋŝĴR2§⁑⍤🝅⌲μr1ϟỹẼ⌲M§ỹλ🜥ψ🝅ᛘêᚼ75ĜᛝmÑ🜥Ĝλŝ▵ϠĜRλΞãᛎ8hÊᛯĝĵΩJĜ▿ĤxŴĵ£Cᛏẅ8ÂψvÉÉδPĝŷ"
-	fRunTest  '!='  "${expectVal}"  "'${exe1}'  ${inputVal}  128jc1"
-
-	fRunTest  'error'  "[anything or nothing]"  "'${exe1}'  --ibase 26  'ABCXYZ'  10"
-
-	fRunChained_TestLast  '=='  "${expectVal}"  "'${exe1}'  --ibase 10  ${inputVal}  base16 ; '${exe1}'  --ibase 16  %CMD1_OUTPUT%  base10"
 
 :;}
 
@@ -118,7 +165,7 @@ return 0
 fMain_Test_Interactive(){
 
 	## Once everything passes, return 0 so we can get straight to automated tests.
-	return 0
+	#return 0
 
 	fEcho_Clean
 
@@ -136,7 +183,7 @@ fMain_Test_Interactive(){
 #	fError_DefineTrap_Ignore ; fError_DefineBehavior_Return  ## Will ignore errors, but not explicit `exit`.
 #	fError_DefineTrap_Ignore ; fError_DefineBehavior_Exit    ## fError_DefineBehavior_Exit() is overridden, if also ignoring errors, so it should behave no differently than above.
 	## Test these error triggers one at a time, then comment out once all pass.
-#	fEcho_Clean "Hit CTRL+C to test user break ..."; fEcho_IsInRawInlineMode_Set 1; _global_ExitLoopNow=0; for i in {1..10}; do sleep 1; ((_global_ExitLoopNow)) && break; echo -n "${i} "; done;:; _global_ExitLoopNow=0
+#	fEcho_Clean "Hit CTRL+C to test user break ..."; fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0; for i in {1..10}; do sleep 1; ((_global_ExitLoopNow)) && break; echo -n "${i} "; done;:; _global_ExitLoopNow=0
 #	rsync /DOESNT_EXIST/bogus
 #	rsync /DOESNT_EXIST/bogus 2>/dev/null #.................................: Should not show any extra lines at all, swallow rsync error, but still show error handler text.
 #	rsync /DOESNT_EXIST/bogus 2>/dev/null || true #.........................: Should look like nothing happened, even with `fError_DefineTrap_Fatal`.
@@ -247,7 +294,8 @@ fResolvePath_v1(){
 #••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 # Script entry point
 
-## Bash environment settings
+## Bash environment settings.
+## This should in theory be the only place these are set.
  set -u  #..................: Require variable declaration. Stronger than mere linting.
  set -e  #..................: Exit on errors.
  set -E  #..................: Propagate ERR trap settings into functions, command substitutions, and subshells.
@@ -265,7 +313,7 @@ declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##   by making sure we're evaluating from it.
 cd "${THIS_DIRPATH}"
 
-## Source the generic script 'utility/n8test'.
+## Source our own copy of the generic script 'n8lib_test'.
 declare n8test_resolved="utility/include/n8lib_test"
 fResolvePath_v1  n8test_resolved  "${n8test_resolved}" ; readonly n8test_resolved
 [[ -n "${n8test_resolved}" ]] && source "${n8test_resolved}"
@@ -293,7 +341,10 @@ fResolvePath_v1  n8test_resolved  "${n8test_resolved}" ; readonly n8test_resolve
 
 ## Source the generic template.
 ## Do this AFTER sourcing modules, because we want to source the modules being developed,
-##   not the stable ones in $PATH.
+##   not the stable ones in $PATH. Normally the last-loaded wins, but in this case it
+##   checks whether the namespace has already been loaded, and will only load once.
+##   (Otherwise modules could be loaded numerous times, wasting time at startup.)
+##   In other words, it enforces its own FIRST-loaded wins.
 fResolvePath_v1  exe1  "${exe1}" ; readonly exe1
 [[ -n "${exe1}" ]] && source "${exe1}" --unit-test
 
@@ -302,22 +353,24 @@ fResolvePath_v1  exe1  "${exe1}" ; readonly exe1
 ##   whether due to normal script completion, or early exit due to error.
 ## Only put critical cleanup here, and/or final stdout message independent of
 ##   reason for exit.
-## Define after loading $exe1, so that this definition wins.
+## Define after sourcing $exe1, so that this definition wins in the global
+##   namespace.
 fCleanup(){
 	notify-send "Title" "$(basename "${BASH_SOURCE[0]}").${FUNCNAME[0]}(): Ran."  ##DEBUG
-	if ((! doQuietly)); then :
+	if ((!doQuietly)); then
+		((_exitCode==0)) && { fEcho; fEcho "Done."; }
 		fEcho_Clean
 	fi
 }
+
+## Run non-logged interactive tests.
+## Ran several times 20260521, commenting out for automation.
+#fMain_Test_Interactive
 
 ## Initialize logging (fPipe_LogAndShowPartialOutput_InitLogfile() is defined in 'n8test')
 declare logFile="${THIS_FILEPATH%.*}.log"
 fResolvePath_v1  logFile    "${logFile}"  0
 fPipe_LogAndShowPartialOutput_InitLogfile "${logFile}"
-
-## Run interactive tests.
-## Ran several times 20260521, commenting out for automation.
-fMain_Test_Interactive
 
 ## Kick off logged testing (this will cause fMain_Test() to run).
 fEntryPoint | fPipe_LogAndShowPartialOutput
@@ -331,3 +384,4 @@ fEcho_ResetBlankCounter  ## Pipe bypasses fEcho tracking; reset to neutral state
 ##		- 20260519-20 JC:
 ##			- Updated for updated n8lib_test.
 ##			- Changed license from GPL2 to MIT.
+##		- 20260521-22 JC: Debugging.

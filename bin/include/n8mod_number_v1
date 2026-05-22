@@ -67,7 +67,7 @@ fIsBoolTrue(){
 	##	Purpose: Function return val of 0 [success] for boolean input that is "true", >0 [failure] if "false".
 	##           The function return code, and traditional boolean integer values, are reversed in this case.
 	##	         Errors on non-boolean input.
-	local -r inputVal=$1  # ; shift || :  ##
+	local -r inputVal="${1:-}"  # ; shift || :  ##
 	case "${inputVal,,}" in
 		"1"|"true"|"yes"|"y"|"t")  return 0  ;;  ## 0 means function "success", or boolean true.
 		"0"|"false"|"no"|"n"|"f")  return ${ERRNUM_MSG_ALREADY_SHOWN}  ;;  ## >0 means "failure", or boolean false.
@@ -89,12 +89,17 @@ fGetRandomInt(){
 	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to receive this function's integer output, as arg1."
 	## Gather args
 	local -n  ptr_Output_s8hk7=$1  ; shift || :  ## <REQUIRED>: Caller nameref for return int.
-	local -ri intLow=${1:-0}       ; shift || :  ## <REQUIRED>: Lowest int, inclusive. Can be negative.
-	local -ri intHigh=${1:-1}      ; shift || :  ## <REQUIRED>: Highest int, inclusive. Upper limit: (intHigh - intLow + 1) ≤ 4,294,967,295.
+	local -i  intLow=${1:-0}       ; shift || :  ## <REQUIRED>: Lowest int, inclusive. Can be negative.
+	local -i  intHigh=${1:-1}      ; shift || :  ## <REQUIRED>: Highest int, inclusive. Upper limit: (intHigh - intLow + 1) ≤ 4,294,967,295.
 	## Init
 	ptr_Output_s8hk7=0
+	## Validate, fix if possible
+	local -i intTmp=0
+	((intHigh < intLow)) && { intTmp=$intHigh; intHigh=$intLow; intLow=$intTmp; }
+	readonly intLow intHigh
 	## Logic
 	local -i range=$(( intHigh - intLow + 1 ))
+	((range < 4294967295)) || { fThrowError "The range between low and high (${range}) is too large. Can't exceed 4,294,967,295."; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	local -i max_unbiased=$(( (2**32 / range) * range - 1 ))  ## Largest multiple of range that fits in 32 bits. Values above this would bias lower buckets if included.
 	local -i val
 	while true; do
@@ -103,39 +108,6 @@ fGetRandomInt(){
 	done
 	ptr_Output_s8hk7=$(( intLow + (val % range) ))
 :;}
-
-
-fGetRandomInt_SlowerBetter(){
-	##	Purpose: Return a cryptographically valid integer between low and high ints, inclusive.
-	##	Note: $RANDOM can do similar, but is not uniformly random, or crypto-secure.
-	##	This is 10x faster than using subshells e.g. for `shuf`.
-	## Validate nameref args:
-	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to receive this function's integer output, as arg1."
-	## Gather args
-	local -n  ptr_Output_s8hk7=$1  ; shift || :  ## <REQUIRED>: Caller nameref for return int.
-	local -ri intLow=${1:-0}       ; shift || :  ## <REQUIRED>: Lowest int, inclusive. Can be negative.
-	local -ri intHigh=${1:-1}      ; shift || :  ## <REQUIRED>: Highest int, inclusive. Upper limit: (intHigh - intLow + 1) ≤ 4,294,967,295.
-	## Init
-	ptr_Output_s8hk7=0
-	## Logic
-	local -i range=$(( intHigh - intLow + 1 ))
-	local -i bytes_needed=$(( (range < 256) ? 1 : (range < 65536) ? 2 : 4 ))
-	local -i max_unbiased=$(( (256**bytes_needed / range) * range - 1 ))
-	local -i val
-	local raw
-	while true; do
-		IFS= read -r -d '' -n "$bytes_needed" raw < /dev/urandom
-		val=0
-		local -i i
-		for (( i=0; i<bytes_needed; i++ )); do
-			printf -v byte '%d' "'${raw:$i:1}"
-			val=$(( (val * 256) + byte ))
-		done
-		(( val <= max_unbiased )) && break
-	done
-	ptr_Output_s8hk7=$(( intLow + (val % range) ))
-:;}
-
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
