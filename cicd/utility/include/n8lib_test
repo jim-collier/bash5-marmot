@@ -139,7 +139,7 @@ fRunTest_Compare_v1(){
 #	fEcho_Clean
 
 	if ((ABORT_ON_FIRST_ERROR)) && ((doConditionalAbort)); then
-		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
+		sleep ${SLEEP_BEFORE_STDERR}  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean "[ ${meName_t4rge}.${FUNCNAME[0]}(): Exiting on first error as instructed."
 	#	fEcho_Clean_Force
@@ -191,14 +191,14 @@ fRunTest_ExecCmd_v1(){
 		isExpectingError=1
 		fEcho; fEcho "Test #${count_Tests} Expecting error, BEGIN ..."
 		_flib_test__Error_SetHandler_DefineTrap_Ignore
-			sleep 0.5  ## Give buffered stdout time to sync with unbuffered stdout, usually.
+			sleep ${SLEEP_BEFORE_STDERR}  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 			gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
 		_flib_test__Error_SetHandler_DefineTrap_Fatal
 		fEcho "Test #${count_Tests} Expecting error, END."; fEcho
 		isExpectingError=0
 	else
 		_flib_test__Error_SetHandler_DefineTrap_Fatal
-		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
+		sleep ${SLEEP_BEFORE_STDERR}  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 		gotVal="$(eval "${cmdStr}"  2> >(fPipe_LogOnly >&2))" ; errNum=$? ; true  ## Send error messages to both stderr, and log
 	fi
 	fTallyResult  $errNum  "${assertMode}"  "${gotVal}"  "${expectVal}"
@@ -242,7 +242,7 @@ fRunTest_ExecCmd_v1(){
 	_flib_test__Error_CallersSettings_Restore
 
 	if ((ABORT_ON_FIRST_ERROR)) && ((doConditionalAbort)); then
-		sleep 0.125  ## Give buffered stdout time to sync with unbuffered stdout, usually.
+		sleep ${SLEEP_BEFORE_STDERR}  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean "[ ${meName_t4rge}.${FUNCNAME[0]}(): Exiting on first error as instructed."
 	#	FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
 		return ${ERRNUM_MSG_ALREADY_SHOWN}

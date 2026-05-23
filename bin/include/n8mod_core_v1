@@ -27,9 +27,22 @@
 
 
 ## Bail if already loaded
-[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] && return
+[[ "${N8MOD_ISLOADED_CORE_V1:-}" == "1" ]] && return
 
-## The following are defined here only for linter support.
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Globals for other modules to consume. For linter support, modules may
+## redefine these as required interfaces, but only AFTER this module is loaded.
+if [[ ! -v THIS_LIB_FILE_PATH_t5hpa ]]; then
+	## Fractional seconds to sleep before outputting to stderr.
+	## This is a hacky and unreliable way to insure that buffered stdout has time
+	## to write, before unbuffered stderr jumps in line, and outputs text on the
+	## console out of programmed order. Since bash affords no control over
+	## buffering, there's no other way to do it that doesn't involve an expensive
+	## process fork to shell out to an external command.
+	declare -gr  SLEEP_BEFORE_STDERR=0.001
+fi
+
+## The following are defined here only for linter support in this file.
 ## They are required to be defined first by the calling script, so should never get inside the if/fi.
 if [[ ! -v THIS_FILEPATH ]]; then
 	declare    THIS_FILEPATH  || :
@@ -52,11 +65,11 @@ fi
 ## Globals for this module. (The existence check is redundant but that's OK.)
 if [[ ! -v THIS_LIB_FILE_PATH_t5hpa ]]; then
 	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5hpa="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5hpa="$(basename "${THIS_LIB_FILE_PATH_t5hpa}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5hpa="$(dirname "${THIS_LIB_FILE_PATH_t5hpa}")" #.....: Replace with native bash function when ready.
-	declare -gr SERIAL_DATETIME="$(date "+%Y%m%d-%H%M%S")"
-	declare -gr RELAUNCH_SENTINELVAL="${THIS_LIB_FILE_NAME_t5hpa}_relaunch_4KQDYluNbzLQHwMwsWxgdk"  ## This funky string isn't for 'security' or uniqueness. It just a sentinel value that's unlikely as a user argument.
+	declare -gr  THIS_LIB_FILE_PATH_t5hpa="$(realpath -e "${BASH_SOURCE[0]}")"
+	declare -gr  THIS_LIB_FILE_NAME_t5hpa="$(basename "${THIS_LIB_FILE_PATH_t5hpa}")" #...: Replace with native bash function when ready.
+	declare -gr  THIS_LIB_DIR_PATH_t5hpa="$(dirname "${THIS_LIB_FILE_PATH_t5hpa}")" #.....: Replace with native bash function when ready.
+	declare -gr  SERIAL_DATETIME="$(date "+%Y%m%d-%H%M%S")"
+	declare -gr  RELAUNCH_SENTINELVAL="${THIS_LIB_FILE_NAME_t5hpa}_relaunch_4KQDYluNbzLQHwMwsWxgdk"  ## This funky string isn't for 'security' or uniqueness. It just a sentinel value that's unlikely as a user argument.
 fi
 
 
@@ -184,7 +197,7 @@ fThrowError(){
 	errMsg="Error in $(basename "${BASH_SOURCE[1]}")${funcName:-}: ${errMsg:-}"
 	_exitCode=$ERRNUM_MSG_ALREADY_SHOWN
 	FECHO_NEXT_TO_STDERR=1 fEcho_Clean
-	sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
+	sleep ${SLEEP_BEFORE_STDERR}  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 	FECHO_NEXT_TO_STDERR=1 fEcho_Clean "${errMsg}"
 	_fError_ShowCallStack
 	if ((! __fError_DoIgnore && __fError_doExitNotReturn)); then exit ${_exitCode}; else return ${_exitCode}; fi
@@ -248,7 +261,7 @@ _fSingleExitPoint(){
 
 	## Take actions based on flags
 	if ((doForceEcho_AtTop)); then
-		sleep 0.125  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
+		sleep ${SLEEP_BEFORE_STDERR}  ## Bash has no way to unbuffer always-buffered stdout, but stderr is always unbuffered; so stderr almost always jumps ahead of stdout. This is a crude and not-always-reliable way to USUALLY make sure they appear in order. There's no other known way to quasi-insure this, in bash.
 		FECHO_NEXT_TO_STDERR=1 fEcho_Clean_Force
 	fi
 	if ((wasUserInterrupted)); then
@@ -363,10 +376,10 @@ declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 #fIsFunction fLoadModule_v1     ||  fThrowError "The function 'fLoadModule_v1' must be defined by the calling script, for this module to work."
 
 ## Load dependency modules other than n8mod_code_v1.
-#[[ -v N8MOD_STRING_V1_IS_LOADED ]] || fLoadModule_v1  n8mod_string_v1
+#[[ -v N8MOD_ISLOADED_STRING_V1 ]] || fLoadModule_v1  n8mod_string_v1
 
 ## Flag this module as loaded.
-[[ -v N8MOD_CORE_V1_IS_LOADED ]] || declare -gr N8MOD_CORE_V1_IS_LOADED=1
+[[ -v N8MOD_ISLOADED_CORE_V1 ]] || declare -gr N8MOD_ISLOADED_CORE_V1=1
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••

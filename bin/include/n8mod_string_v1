@@ -27,9 +27,9 @@
 
 
 ## Bail if already loaded
-[[ "${N8MOD_STRING_V1_IS_LOADED:-}" == "1" ]] && return
+[[ "${N8MOD_ISLOADED_STRING_V1:-}" == "1" ]] && return
 
-## The following are defined here only for linter support.
+## The following are defined here only for linter support in this file.
 ## They are required to be defined first by the calling script, so should never get inside the if/fi.
 #if [[ ! -v THIS_FILEPATH ]]; then
 #	declare    THIS_FILEPATH  || :
@@ -48,6 +48,107 @@ fi
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Functions
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+fBgrep() {
+	##	Purpose:
+	##		- Pure bash `grep -E` replacement using ERE via [[ =~ ]].
+	##		- Input can be arg4, OR stdin (e.g. piped).
+	##	NOTE:
+	##		- If you use pipes, you'll create a subshell, and obviate the whole
+	##		  advantage of using this (avoiding that performance hit). So,
+	##		  seriously, don't do that.
+	##	Features:
+	##		- Supports: groups (), alternation '|', character classes [abc],
+	##		  negated [^x], POSIX classes [[:alpha:]], anchors ^ $,
+	##		  wildcard ., quantifiers * + ? {n,m}.
+	##		- Does NOT support: PCRE (e.g. `grep -P`). No lookahead/behind,
+	##		  no \d \w \s (use [0-9] [[:alnum:]] [[:space:]]).
+	##		- Requires bash 4.3+ (namerefs), ERE support via system regex engine.
+	##	Usage: fBgrep [-iov] <RetVal> <pattern> [invar]
+	##		-i        Case-insensitive (uses nocasematch, restored after).
+	##		-o        Output only matched portion (BASH_REMATCH[0])
+	##		            Limited to first match per line only; which is the most common
+	##		            use-case anyway e.g. `grep -o | head -n 1`.
+	##		-v        Invert match (inherently incompatible with -o).
+	##		RetVal    Required: Nameref, receives result as single newline-joined string.
+	##		pattern   Required: ERE pattern string.
+	##		InVar     Optional: Nameref, input variable; falls back to stdin if omitted.
+	##	Examples:
+	##		fBgrep -i resultVar 'foo|bar' mytext
+	##		fBgrep -o resultVar '[0-9]+' mytext
+	##		fBgrep    resultVar '^error' mytext
+	##		fBgrep -v resultVar 'debug'          # reads stdin
+
+	local _bgrep_flags=""
+	local _bgrep_invert=0
+	local _bgrep_nocase=0
+	local _bgrep_only=0
+	local _bgrep_line=""
+	local _bgrep_matched=""
+	local _bgrep_result=""
+	local _bgrep_nocasematch_restore=0
+
+	# optional flags must be first arg
+	if [[ ${1:-} == -* ]]; then
+		_bgrep_flags="$1"
+		shift
+	fi
+
+	[[ $_bgrep_flags == *v* ]] && _bgrep_invert=1
+	[[ $_bgrep_flags == *i* ]] && _bgrep_nocase=1
+	[[ $_bgrep_flags == *o* ]] && _bgrep_only=1
+
+	if (( _bgrep_only && _bgrep_invert )); then
+		printf 'bgrep: -o and -v are incompatible\n' >&2
+		return 1
+	fi
+
+	# named args
+	local _bgrep_outvar="$1"; shift
+	local _bgrep_pattern="$1"; shift
+	local _bgrep_invar="${1+$1}"
+	[[ ${1+x} ]] && shift
+
+	local -n _bgrep_out="$_bgrep_outvar"
+
+	## Save and set nocasematch if -i. (This is cheap to do. Bash built-in.)
+	if (( _bgrep_nocase )); then
+		shopt -q nocasematch && _bgrep_nocasematch_restore=1 || _bgrep_nocasematch_restore=0
+		shopt -s nocasematch
+	fi
+
+	_bgrep_out=""
+
+	_bgrep_match_lines() {
+		while IFS= read -r _bgrep_line; do
+			[[ $_bgrep_line =~ $_bgrep_pattern ]]
+			_bgrep_matched=$?
+
+			if (( _bgrep_invert ? _bgrep_matched != 0 : _bgrep_matched == 0 )); then
+				if (( _bgrep_only )); then
+					_bgrep_result+="${BASH_REMATCH[0]}"$'\n'
+				else
+					_bgrep_result+="${_bgrep_line}"$'\n'
+				fi
+			fi
+		done
+		# strip trailing newline
+		_bgrep_out="${_bgrep_result%$'\n'}"
+	}
+
+	if [[ -n $_bgrep_invar ]]; then
+		local -n _bgrep_in="$_bgrep_invar"
+		_bgrep_match_lines <<< "$_bgrep_in"
+	else
+		_bgrep_match_lines
+	fi
+
+	# restore nocasematch to original state
+	if (( _bgrep_nocase )); then
+		(( _bgrep_nocasematch_restore )) && shopt -s nocasematch || shopt -u nocasematch
+	fi
+}
 
 fGetStrMatchPos(){
 	##	Purpose: Returns 1-based index of position of first match. 0= no match.
@@ -149,7 +250,7 @@ declare -i isSourced_t5jec=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ((isSourced_t5jec)) || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is meant to be 'sourced' from within another script.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Validate the assumption that required n8mod_core_v1 dependency is already loaded
-[[ "${N8MOD_CORE_V1_IS_LOADED:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
+[[ "${N8MOD_ISLOADED_CORE_V1:-}" == "1" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): n8mod_core_v1 is not loaded yet. It's a core dependency that must be loaded first. All other dependencies auto-load.\n" ; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Validate this module interface as implemented by consuming script.
 #[[ -n "${THIS_FILEPATH:-}" ]]  ||  fThrowError "The constant 'THIS_FILEPATH' must be defined by the parent script, for this module to work."
@@ -158,10 +259,10 @@ declare -i isSourced_t5jec=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 #fIsFunction fLoadModule_v1     ||  fThrowError "The function 'fLoadModule_v1' must be defined by the calling script, for this module to work."
 
 ## Load dependency modules other than n8mod_code_v1.
-#[[ -v N8MOD_NUMEBR_V1_IS_LOADED ]] || fLoadModule_v1  n8mod_number_v1
+#[[ -v N8MOD_ISLOADED_NUMEBR_V1 ]] || fLoadModule_v1  n8mod_number_v1
 
 ## Flag this module as loaded.
-[[ -v N8MOD_STRING_V1_IS_LOADED ]] || declare -gr N8MOD_STRING_V1_IS_LOADED=1
+[[ -v N8MOD_ISLOADED_STRING_V1 ]] || declare -gr N8MOD_ISLOADED_STRING_V1=1
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
