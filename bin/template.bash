@@ -341,23 +341,23 @@ declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 { ((isSourced_t5ja1)) && [[ "${1:-}" != '--unit-test' ]]; }  &&  { echo -e "\nError in $(basename "${BASH_SOURCE[0]}"): This script is not meant to be 'sourced' from within another script, unless for unit-testing.\n"; exit ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 ## Load required core module
-[[ -v N8MOD_CORE_V1_IS_LOADED ]] || fLoadModule_v1  'n8mod_core_v1'
+[[ -v N8MOD_ISLOADED_CORE_V1 ]] || fLoadModule_v1  'n8mod_core_v1'
 
 ## Optional modules as needed
-	[[ -v N8MOD_INTERACT_V1_IS_LOADED   ]]  || fLoadModule_v1  'n8mod_interact_v1'
-	[[ -v N8MOD_STRING_V1_IS_LOADED     ]]  || fLoadModule_v1  'n8mod_string_v1'
-#	[[ -v N8MOD_NUMBER_V1_IS_LOADED     ]]  || fLoadModule_v1  'n8mod_number_v1'
-#	[[ -v N8MOD_ARRAY_V1_IS_LOADED      ]]  || fLoadModule_v1  'n8mod_array_v1'
-#	[[ -v N8MOD_FILESYS_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_filesys_v1'
-#	[[ -v N8MOD_PROCESS_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_process_v1'
-#	[[ -v N8MOD_LOGGING_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_logging_v1'
-#	[[ -v N8MOD_UNITTEST_V1_IS_LOADED   ]] || fLoadModule_v1  'n8mod_unittest_v1'
-#	[[ -v N8MOD_OOP_V1_IS_LOADED        ]]  || fLoadModule_v1  'n8mod_oop_v1'
-#	[[ -v N8MOD_ZFS_V1_IS_LOADED        ]]  || fLoadModule_v1  'n8mod_zfs_v1'
-#	[[ -v N8MOD_BTRFS_V1_IS_LOADED      ]]  || fLoadModule_v1  'n8mod_btrfs_v1'
-#	[[ -v N8MOD_SQL_V1_IS_LOADED        ]]  || fLoadModule_v1  'n8mod_sql_v1'
-#	[[ -v N8MOD_SQLITE3_V1_IS_LOADED    ]]  || fLoadModule_v1  'n8mod_sqlite3_v1'
-#	[[ -v N8MOD_POSTGRESQL_V1_IS_LOADED ]]  || fLoadModule_v1  'n8mod_postgresql_v1'
+	[[ -v N8MOD_ISLOADED_INTERACT_V1   ]]  || fLoadModule_v1  'n8mod_interact_v1'
+	[[ -v N8MOD_ISLOADED_STRING_V1     ]]  || fLoadModule_v1  'n8mod_string_v1'
+#	[[ -v N8MOD_ISLOADED_NUMBER_V1     ]]  || fLoadModule_v1  'n8mod_number_v1'
+#	[[ -v N8MOD_ISLOADED_ARRAY_V1      ]]  || fLoadModule_v1  'n8mod_array_v1'
+#	[[ -v N8MOD_ISLOADED_FILESYS_V1    ]]  || fLoadModule_v1  'n8mod_filesys_v1'
+#	[[ -v N8MOD_ISLOADED_PROCESS_V1    ]]  || fLoadModule_v1  'n8mod_process_v1'
+#	[[ -v N8MOD_ISLOADED_LOGGING_V1    ]]  || fLoadModule_v1  'n8mod_logging_v1'
+#	[[ -v N8MOD_ISLOADED_UNITTEST_V1   ]]  || fLoadModule_v1  'n8mod_unittest_v1'
+#	[[ -v N8MOD_ISLOADED_OOP_V1        ]]  || fLoadModule_v1  'n8mod_oop_v1'
+#	[[ -v N8MOD_ISLOADED_ZFS_V1        ]]  || fLoadModule_v1  'n8mod_zfs_v1'
+#	[[ -v N8MOD_ISLOADED_BTRFS_V1      ]]  || fLoadModule_v1  'n8mod_btrfs_v1'
+#	[[ -v N8MOD_ISLOADED_SQL_V1        ]]  || fLoadModule_v1  'n8mod_sql_v1'
+#	[[ -v N8MOD_ISLOADED_SQLITE3_V1    ]]  || fLoadModule_v1  'n8mod_sqlite3_v1'
+#	[[ -v N8MOD_ISLOADED_POSTGRESQL_V1 ]]  || fLoadModule_v1  'n8mod_postgresql_v1'
 
 ## Kick everything off (unless unit-testing)
 [[ "${1:-}" == '--unit-test' ]] || fInit "${@}"
