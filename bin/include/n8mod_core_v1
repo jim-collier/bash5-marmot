@@ -29,10 +29,13 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_CORE_V1:-}" == "1" ]] && return
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Globals for other modules to consume. For linter support, modules may
 ## redefine these as required interfaces, but only AFTER this module is loaded.
-if [[ ! -v THIS_LIB_FILE_PATH_t5hpa ]]; then
+[[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]] && declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
+if [[ ! -v FBGREPE_REGEX_NUMBER ]]; then
+	declare -gr  FBGREPE_REGEX_SYMBOL_DECIMAL='\.'
+	declare -gr  FBGREPE_REGEX_INTEGER='^-?[0-9]+$'
+	declare -gr  FBGREPE_REGEX_NUMBER="^-?([0-9]+${FBGREPE_REGEX_SYMBOL_DECIMAL}?[0-9]*|${FBGREPE_REGEX_SYMBOL_DECIMAL}[0-9]+)$"
 	## Fractional seconds to sleep before outputting to stderr.
 	## This is a hacky and unreliable way to insure that buffered stdout has time
 	## to write, before unbuffered stderr jumps in line, and outputs text on the
@@ -177,15 +180,13 @@ fChainToFunction(){
 ## Error-handling (minified but not obfuscated)
 ## The default `fError_DefineBehavior_*` is `return`, not `exit`. Call `fError_DefineBehavior_Exit` to change that.
 ## Note that SIGKILL (e.g. from kill -9) isn't possible to trap.
-if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
+if [[ ! -v __fError_WasCleanupRun ]]; then
 	declare -gi  __fError_WasCleanupRun=0          ## Managed internally by this suite.
 	declare -gi  __fError_doExitNotReturn=0        ## Managed internally by this suite.
 	declare -gi  __fError_DoIgnore=0               ##
 	declare -gi  __fError_ExitCode_Previous=0      ## To help avoid repeat reports to console.
 	declare -gi  _exitCode=0                       ## Set by this suite, but readable by calling functions. Think of it as an extended '$?' that doesn't immediately clear.
 	declare -gi  _global_ExitLoopNow=0             ## Only way to exit loops when fError_DefineTrap_Ignore() in force, and user presses CTRL+C.
-#	declare -gi  __fError_JustDidEmptyForceEcho=0
-	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
 fi
 fThrowError(){
 	## This will cause _fSingleExitPoint() to fire twice:
