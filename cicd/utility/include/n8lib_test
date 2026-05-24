@@ -29,20 +29,32 @@
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 # Globals
 
-if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
+if [[ ! -v ABORT_ON_FIRST_ERROR ]]; then
 	## Settings
 	declare -gri ABORT_ON_FIRST_ERROR=1
 	## Internal members
 	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
+	## Global counters
 	declare -gi  currentPassStreak=0
 	declare -g   __fRunTest_EchoHook1=""
+	declare -gi count_Tests=0
+	declare -gi count_Passed=0
+	declare -gi count_Failed=0
+	## Saved error-handling state (generic bash settings, no dependency on any specific error-handling module)
+	declare -g  __flib_test__saved_setflags=""
+	declare -g  __flib_test__saved_pipefail=""
+	declare -g  __flib_test__saved_inherit_errexit=""
+	declare -g  __flib_test__saved_errtrap=""
 fi
 
-## Saved error-handling state (generic bash settings, no dependency on any specific error-handling module)
-declare -g  __flib_test__saved_setflags=""
-declare -g  __flib_test__saved_pipefail=""
-declare -g  __flib_test__saved_inherit_errexit=""
-declare -g  __flib_test__saved_errtrap=""
+## n8mod_core_v1
+if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
+	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
+fi
+
+
+#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+# Generic code
 
 _flib_test__Error_CallersSettings_Store(){
 	__flib_test__saved_setflags="${-}"
@@ -69,17 +81,10 @@ _flib_test__Error_SetHandler_DefineTrap_Fatal(){
 }
 
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-# Generic code
-
 fEntryPoint(){
 
 	## Test if fMain exists in calling script
 	declare -F fMain_Test &> /dev/null ||  { echo -e "\nError in ${meName_t4rge}.${FUNCNAME[0]}(): Calling script must have a function named 'fMain_Test()'.\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
-
-	local -i count_Tests=0
-	local -i count_Passed=0
-	local -i count_Failed=0
 
 	fMain_Test
 

@@ -37,7 +37,6 @@
 #	declare    THIS_DIRPATH   || :
 #fi
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Globals for this module. (The existence check is redundant but that's OK.)
 if [[ ! -v THIS_LIB_FILE_PATH_t5jm0 ]]; then
 	## Constants

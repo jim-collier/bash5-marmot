@@ -78,26 +78,32 @@ fMain_Test(){
 	## Environment overrides
 	local -r LANG="C.UTF-8"  ## Splitting won't work correctly without this
 
+	## Constants
+	local -r BREAKABLE_LOOP_SLEEP=0.001
+
 	## Variables
-	local inputStr=""  expectStr=""  gotStr=""  tmpStr=""
-	local -i gotInt=0 expectInt=0
-	local -i loopCount=0
+	local    inputStr=""  outputStr=""  expectStr=""
+	local -i outputInt=0  expectInt=0  loopCount=0
 
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	fUnitTest_PrintSectionHeader  "n8mod_core_v1"
+	fUnitTest_PrintSectionHeader  "n8mod_core_v1.fIsFunction()"
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	## fIsFunction
 	fRunTest_ExecCmd_v1  'error'    'fIsFunction  NOTAFUNC'
 	fRunTest_ExecCmd_v1  'noerror'  'fIsFunction  fMain_Test'
-	## fGetOgUserName
-	fGetOgUserName inputStr ; fRunTest_Compare_v1  '=='  "${inputStr}"  "${USER}"
-	## fGetOgUserHome
-	fGetOgUserHome inputStr ; fRunTest_Compare_v1  '=='  "${inputStr}"  "${HOME}"
 
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	fUnitTest_PrintSectionHeader  "n8mod_number_v1"
+	fUnitTest_PrintSectionHeader  "n8mod_core_v1.fGetOgUserName()"
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	## fIsBool
+	fGetOgUserName outputStr ; fRunTest_Compare_v1  '=='  "${outputStr}"  "${USER}"
+
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_core_v1.fGetOgUserHome()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fGetOgUserHome outputStr ; fRunTest_Compare_v1  '=='  "${outputStr}"  "${HOME}"
+
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_number_v1.fIsBool()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 	fRunTest_ExecCmd_v1  'error'    'fIsBool  0.32'
 	fRunTest_ExecCmd_v1  'error'    'fIsBool  xyz'
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  0'
@@ -108,7 +114,10 @@ fMain_Test(){
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  no'
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  true'
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBool  y'
-	## fIsBoolTrue
+
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_number_v1.fIsBoolTrue()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  '
 	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  0'
 	fRunTest_ExecCmd_v1  'error'    'fIsBoolTrue  BOGUSVAL'
@@ -121,40 +130,68 @@ fMain_Test(){
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  y'
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  Y'
 	fRunTest_ExecCmd_v1  'noerror'  'fIsBoolTrue  yes'
-	## fGetRandomInt
-	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt   100         10'
-	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt  -100        100'
-	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt   1      1000000'
-	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  gotInt  -1   1000000000'
-	fRunTest_ExecCmd_v1  'error'    'fGetRandomInt  gotInt   1  10000000000'  ## Range is too large.
-	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  0  0'"
+
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_number_v1.fGetRandomInt()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  outputInt   100         10'
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  outputInt  -100        100'
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  outputInt   1      1000000'
+	fRunTest_ExecCmd_v1  'noerror'  'fGetRandomInt  outputInt  -1   1000000000'
+	fRunTest_ExecCmd_v1  'error'    'fGetRandomInt  outputInt   1  10000000000'  ## Range is too large.
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  outputInt  0  0'"
 		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
 		for i in {1..10}; do
-			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  0  0 ; echo -n "${gotInt}, "
+			((_global_ExitLoopNow)) && break ; sleep 0.0001 ; fGetRandomInt  outputInt  0  0 ; echo -n "${outputInt}, "
 		done;:; fEcho_Clean_Force
-	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  0  1'"
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  outputInt  0  1'"
 		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
 		for i in {1..10}; do
-			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  0  1 ; echo -n "${gotInt}, "
+			((_global_ExitLoopNow)) && break ; sleep ${BREAKABLE_LOOP_SLEEP} ; fGetRandomInt  outputInt  0  1 ; echo -n "${outputInt}, "
 		done;:; fEcho_Clean_Force
-	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  10  0'"
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  outputInt  10  0'"
 		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
 		for i in {1..100}; do
-			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  10  0 ; echo -n "${gotInt}, "
+			((_global_ExitLoopNow)) && break ; sleep ${BREAKABLE_LOOP_SLEEP} ; fGetRandomInt  outputInt  10  0 ; echo -n "${outputInt}, "
 		done;:; fEcho_Clean_Force
-	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  -100  100'"
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  outputInt  -100  100'"
 		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
 		for i in {1..100}; do
-			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  -100  100 ; echo -n "${gotInt}, "
+			((_global_ExitLoopNow)) && break ; sleep ${BREAKABLE_LOOP_SLEEP} ; fGetRandomInt  outputInt  -100  100 ; echo -n "${outputInt}, "
 		done;:; fEcho_Clean_Force
-	fEcho_Clean "Fuzz-testing 'fGetRandomInt  gotInt  0  1000000'"
+	fEcho_Clean "Fuzz-testing 'fGetRandomInt  outputInt  0  1000000'"
 		fEcho_IsInRawInlineMode_Set 1 ; _global_ExitLoopNow=0
 		for i in {1..100}; do
-			((_global_ExitLoopNow)) && break ; sleep 0.001 ; fGetRandomInt  gotInt  0  1000000 ; echo -n "${gotInt}, "
+			((_global_ExitLoopNow)) && break ; sleep ${BREAKABLE_LOOP_SLEEP} ; fGetRandomInt  outputInt  0  1000000 ; echo -n "${outputInt}, "
 		done;:; fEcho_Clean_Force
 
 
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_string_v1.fBgrep()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	inputStr='foobar'     ;  fBgrep outputStr       'foo'                      inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'foobar'
+	inputStr='FooBar'     ;  fBgrep outputStr       'foo'                      inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  ''
+	inputStr='FooBar'     ;  fBgrep outputStr  -i   'foo'                      inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'FooBar'
+	inputStr='Fo0123Ba'   ;  fBgrep outputStr  -o   '[0-9]+'                   inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '0123'
+	inputStr='1230'       ;  fBgrep outputStr  -o   "${FBGREPE_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '1230'
+	inputStr='-1230'      ;  fBgrep outputStr  -o   "${FBGREPE_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '-1230'
+	inputStr='-1230.7890' ;  fBgrep outputStr  -o   "${FBGREPE_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '-1230.7890'
+	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'noerror'  "fBgrep         -q  'foo'  inputStr"  'Missing output nameref, but with -q (OK).'
+	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'error'    "fBgrep         -i  'foo'  inputStr"  'Missing output nameref.'
+	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'noerror'  "fBgrep  outputStr  -q  'foo'  inputStr"  'Nameref AND -q (OK).'
+	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'error'    "fBgrep  outputStr  -q  'asb'  inputStr"  'Nameref AND -q (OK), but return >0 on nomatch.'
 
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_string_v1.fGetStrMatchPos()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	local bigStr="Now is the time for all good sentient life to come to the aid of their solar system, is it not."
+	fGetStrMatchPos  outputInt  bigStr  'is'     ; fRunTest_Compare_v1  '=='     "${outputInt}"  5
+	fGetStrMatchPos  outputInt  bigStr  'woohoo' ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
+	fGetStrMatchPos  outputInt  bigStr  ''       ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
+	fGetStrMatchPos             bigStr  ''       ; fRunTest_Compare_v1  'error'  "${outputInt}"  0
+	local bigStr=""
+	fGetStrMatchPos  outputInt  bigStr  'woohoo' ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
+	fGetStrMatchPos  outputInt  bigStr  ''       ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
 
 :;}
 
@@ -372,9 +409,12 @@ declare logFile="${THIS_FILEPATH%.*}.log"
 fResolvePath_v1  logFile    "${logFile}"  0
 fPipe_LogAndShowPartialOutput_InitLogfile "${logFile}"
 
+## Call fMain_Test() directly, for better error messages.
+fMain_Test
+
 ## Kick off logged testing (this will cause fMain_Test() to run).
-fEntryPoint | fPipe_LogAndShowPartialOutput
-fEcho_ResetBlankCounter  ## Pipe bypasses fEcho tracking; reset to neutral state
+#fEntryPoint | fPipe_LogAndShowPartialOutput
+#fEcho_ResetBlankCounter  ## Pipe bypasses fEcho tracking; reset to neutral state
 
 
 
