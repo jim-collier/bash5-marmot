@@ -40,15 +40,19 @@ To be fair, it's also difficult to let go of some outmoded ideas of what shell s
 
 ### Added
 
-- Changed licence of CICD scripts from GPL2 to MIT. [20260520]
+- Added functions `fBgrep()` [_a bash-native `grep -E [-iov]`_], `fBgrepQ()` [_bash-native `grep -Eq [-iov]`_], `fBhead()` [_bash-native `head`_], `fIsNameref()`. [20260524]
 - CI/CD scripts. [20260519]
 
 ### Changed
 
+- Made `fError*` -related functions simpler and more robust. [20260523]
 - Refactored to be modular dynamic libraries instead of one monolithic static template.
 	- *There's still a required template though to implement required module interfaces, it's just a much smaller script overall. And modular.*
 - Fixed linter errors.
-- Claude-assisted debugging.
+
+### Other work
+
+- Changed licence of CICD scripts from GPL2 to MIT. [20260520]
 
 ## v10.0.0-beta2 - 2026-04-09
 
