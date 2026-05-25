@@ -36,7 +36,7 @@
 <!-- TOC ignore:true -->
 # Bash 5 modular library
 
-This template and dynamic library for Bash 4.3+ (incuding 5) provides the easiest way to get up and running with a simple script that has access to a powerful library that is fast and 100% bash-native - with no subshells, pipes, or process spawning. It includes powerful (for Bash), bulletproof features and functions with minimal fuss.
+This template and dynamic library for Bash 5 provides the easiest way to get up and running with a simple script that has access to a powerful library that is fast and 100% bash-native - with no subshells, pipes, or process spawning. It includes powerful (for Bash), bulletproof features and functions with minimal fuss.
 
 <!-- TOC ignore:true -->
 ## Table of contents
