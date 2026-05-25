@@ -163,13 +163,13 @@ fMain_Test(){
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 	fUnitTest_PrintSectionHeader  "n8mod_string_v1.fBgrep()"
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	inputStr='foobar'     ;  fBgrep  outputStr  --   'foo'                      inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'foobar'  ## No flags
-	inputStr='foobar'     ;  fBgrep  outputStr  ''   'foo'                      inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'foobar'  ## No flags
-	inputStr='FooBar'     ;  fBgrep  outputStr  -i   'foo'                      inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'FooBar'
-	inputStr='Fo0123Ba'   ;  fBgrep  outputStr  -o   '[0-9]+'                   inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '0123'
-	inputStr='1230'       ;  fBgrep  outputStr  -o   "${FBGREPE_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '1230'
-	inputStr='-1230'      ;  fBgrep  outputStr  -o   "${FBGREPE_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '-1230'
-	inputStr='-1230.7890' ;  fBgrep  outputStr  -o   "${FBGREPE_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '-1230.7890'
+	inputStr='foobar'     ;  fBgrep  outputStr  --   'foo'                     inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'foobar'  ## No flags
+	inputStr='foobar'     ;  fBgrep  outputStr  ''   'foo'                     inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'foobar'  ## No flags
+	inputStr='FooBar'     ;  fBgrep  outputStr  -i   'foo'                     inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  'FooBar'
+	inputStr='Fo0123Ba'   ;  fBgrep  outputStr  -o   '[0-9]+'                  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '0123'
+	inputStr='1230'       ;  fBgrep  outputStr  -o   "${FBGREP_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '1230'
+	inputStr='-1230'      ;  fBgrep  outputStr  -o   "${FBGREP_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '-1230'
+	inputStr='-1230.7890' ;  fBgrep  outputStr  -o   "${FBGREP_REGEX_NUMBER}"  inputStr;  fRunTest_Compare_v1  '=='  "${outputStr}"  '-1230.7890'
 	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'error'    "fBgrep             -i  'foo'  inputStr"  ## Missing output nameref.
 	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'error'    "fBgrep  outputStr  -i  'foo'          "  ## Missing input nameref.
 	inputStr='foobar'     ;  fRunTest_ExecCmd_v1  'error'    "fBgrep  NOTVALID   -i  'foo'  inputStr"  ## Bogus output nameref.

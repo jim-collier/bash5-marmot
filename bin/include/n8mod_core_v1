@@ -40,9 +40,9 @@ fi
 ## Globals for other modules to consume. For linter support, modules may
 ## redefine these as required interfaces, but only AFTER this module is loaded.
 [[ -v ERRNUM_MSG_ALREADY_SHOWN     ]] || declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
-[[ -v FBGREPE_REGEX_SYMBOL_DECIMAL ]] || declare -gr  FBGREPE_REGEX_SYMBOL_DECIMAL='\.'
-[[ -v FBGREPE_REGEX_INTEGER        ]] || declare -gr  FBGREPE_REGEX_INTEGER='^-?[0-9]+$'
-[[ -v FBGREPE_REGEX_NUMBER         ]] || declare -gr  FBGREPE_REGEX_NUMBER="^-?([0-9]+${FBGREPE_REGEX_SYMBOL_DECIMAL}?[0-9]*|${FBGREPE_REGEX_SYMBOL_DECIMAL}[0-9]+)$"
+[[ -v FBGREP_REGEX_SYMBOL_DECIMAL  ]] || declare -gr  FBGREP_REGEX_SYMBOL_DECIMAL='\.'
+[[ -v FBGREP_REGEX_INTEGER         ]] || declare -gr  FBGREP_REGEX_INTEGER='^-?[0-9]+$'
+[[ -v FBGREP_REGEX_NUMBER          ]] || declare -gr  FBGREP_REGEX_NUMBER="^-?([0-9]+${FBGREP_REGEX_SYMBOL_DECIMAL}?[0-9]*|${FBGREP_REGEX_SYMBOL_DECIMAL}[0-9]+)$"
 [[ -v SERIAL_DATETIME              ]] || declare -gr  SERIAL_DATETIME="$(date "+%Y%m%d-%H%M%S")"
 [[ -v RELAUNCH_SENTINELVAL         ]] || declare -gr  RELAUNCH_SENTINELVAL="${THIS_LIB_FILE_NAME_t5hpa}_relaunch_4KQDYluNbzLQHwMwsWxgdk"  ## This funky string isn't for 'security' or uniqueness. It just a sentinel value that's unlikely as a user argument.
 
