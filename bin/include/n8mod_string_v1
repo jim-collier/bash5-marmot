@@ -215,12 +215,58 @@ fBgrepQ() {
 
 }
 
+fBhead() {
+	##	Purpose:
+	##		- Pure bash partial implementation of GNU `head`.
+	##	Notes:
+	##		- Only deals with variables for input, not files. For files,
+	##		  regular GNU `head` would be better than any bash implementation anyway.
+
+	## Validate nameref args [use raw comparison instead of fIsNameref() for hotpath].
+	(( $# >= 2 )) || { fThrowError "Need at least output and input namerefs." ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	nref="${1:-}" ; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	nref="${!#}"  ; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+
+	## Gather args
+	local -n ptr_Output_t5rth=$1
+	local -n ptr_Input_t5rth=${!#}
+
+	## Default return
+	ptr_Output_t5rth=""
+
+	## Process middle args
+	local -i getNumLines=10
+	set -- "${@:2:$#-2}"  ## Strip off first and last arg
+	while (( $# )); do
+		case "${1}" in
+			'-n')  getNumLines=$2      ; shift 2 ;;
+			'-n'*) getNumLines=${1#-n} ; shift   ;;
+			*)                           shift   ;;
+		esac
+	done
+
+	## Bail early if possible
+	[[ -n "${ptr_Input_t5rth}" ]] || return 0
+
+	## Convert escaped newline characters into real newlines
+	#printf -v ptr_Input_t5rth '%b' "${ptr_Input_t5rth}"
+	ptr_Input_t5rth=${ptr_Input_t5rth//\\n/$'\n'}
+
+	## Put lines into an array, then get the top values from that array
+	local -a linesArr
+	mapfile -t -n ${getNumLines} linesArr <<< "${ptr_Input_t5rth}"
+	(( ${#linesArr[@]} > 0)) || return 0  ## Bail if array is empty
+	printf -v ptr_Output_t5rth '%s\n' "${linesArr[@]}"
+
+}
+
+
 fGetStrMatchPos(){
 	##	Purpose: Returns 1-based index of position of first match. 0= no match.
 	##	Notes: Uses namerefs in so that any of the strings can be huge, with less performance hit.
-	## Validate nameref args
-	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
-	fIsNameref "${2:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
+	## Validate nameref args [use raw comparison instead of fIsNameref() for hotpath].
+	nref="${1:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	nref="${2:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n ptr_Output_s74ht=$1         ; shift || :  ## Arg <REQUIRED>: Nameref: Int return value, 0=no match, >=1 position of start of firt match.
 	local -n ptr_SuperString_s74ht=$1    ; shift || :  ## Arg <REQUIRED>: Nameref: String: Main string to search in.
@@ -236,10 +282,10 @@ fGetStrMatchPos(){
 fSplitStr (){
 	##	Purpose: Split a string into left and right parts, on first occurrence of a given delimiter and specified scan direction.
 	##	Notes: Uses namerefs in so that any of the strings can be huge, with less performance hit.
-	## Validate nameref args
-	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
-	fIsNameref "${2:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
-	fIsNameref "${3:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
+	## Validate nameref args [use raw comparison instead of fIsNameref() for hotpath].
+	nref="${1:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	nref="${2:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	nref="${3:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n  ptr_output_LeftStr_s8hd0=$1       ; shift || :  ## Arg <REQUIRED>: Nameref: Str return value; left substring.
 	local -n  ptr_output_RightStr_s8hd0=$1      ; shift || :  ## Arg <REQUIRED>: Nameref: Str return value; right substring.

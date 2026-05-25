@@ -48,14 +48,17 @@ fi
 
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Run stuff (note: program name is "${1}")
+## Functions
+
 fRunGui(){
 	[[ -n "${1:-}" ]] || fThrowError "Nothing specified to run."
 	local quotedParams=""; fBuildQuotedParams  quotedParams  "${@}"
 	echo "Executing: ( (eval \"nohup ${quotedParams}  &>/dev/null\") & disown ) &>/dev/null"  ## Debug output to console. Users won't see since this is run by GUI.
 	( (eval "nohup ${quotedParams}  &>/dev/null") & disown ) &>/dev/null
 }
+
 fRunSilentlyWithoutError(){ fRunGui  "${@}"; }
+
 fRunGuiAsSudo(){
 	[[ -n "${1:-}" ]] || fThrowError "Nothing specified to run."
 	local quotedParams=""

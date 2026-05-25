@@ -76,7 +76,7 @@ fMain_Test(){
 	local -r BREAKABLE_LOOP_SLEEP=0.001
 
 	## Variables
-	local    inputStr=""  outputStr=""  expectStr=""
+	local    inputStr=""  outputStr=""  expectStr=""  bigStr=""
 	local -i outputInt=0  expectInt=0  loopCount=0
 
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -190,15 +190,24 @@ fMain_Test(){
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 	fUnitTest_PrintSectionHeader  "n8mod_string_v1.fGetStrMatchPos()"
 	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-	local bigStr="Now is the time for all good sentient life to come to the aid of their solar system, is it not."
+	bigStr="Now is the time for all good sentient life to come to the aid of their solar system, is it not."
 	fGetStrMatchPos  outputInt  bigStr  'is'     ; fRunTest_Compare_v1  '=='     "${outputInt}"  5
 	fGetStrMatchPos  outputInt  bigStr  'woohoo' ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
 	fGetStrMatchPos  outputInt  bigStr  ''       ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
 	fRunTest_ExecCmd_v1  'error'  "fGetStrMatchPos             bigStr  'woohoo'"  ## Missing output nameref.
 	fRunTest_ExecCmd_v1  'error'  "fGetStrMatchPos  outputInt          'woohoo'"  ## Missing input nameref.
-	local bigStr=""
+	bigStr=""
 	fGetStrMatchPos  outputInt  bigStr  'woohoo' ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
 	fGetStrMatchPos  outputInt  bigStr  ''       ; fRunTest_Compare_v1  '=='     "${outputInt}"  0
+
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	fUnitTest_PrintSectionHeader  "n8mod_string_v1.fBhead()"
+	##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+	bigStr="Now is the\ntime for all good\nsentient life\nto come to the aid\nof their solar\nsystem, is it not."
+	fBhead  outputStr  -n 1 bigStr ; fRunTest_Compare_v1  '=='  "${outputStr}"  'Now is the'$'\n'
+	fBhead  outputStr  -n 3 bigStr ; fRunTest_Compare_v1  '=='  "${outputStr}"  'Now is the'$'\ntime for all good'$'\nsentient life'$'\n'
+	bigStr="$(echo -e "${bigStr}")"
+	fBhead  outputStr  -n 3 bigStr ; fRunTest_Compare_v1  '=='  "${outputStr}"  'Now is the'$'\ntime for all good'$'\nsentient life'$'\n'
 
 :;}
 
