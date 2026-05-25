@@ -44,7 +44,7 @@ if [[ ! -v THIS_FILEPATH ]]; then
 	declare -gri DO_CHAIN_SUDO=1  ## Only used by fChainToFunction(), which you don't have to use even if this is 1.
 fi
 
-## Populated by n8mod_core_v1
+## Also populated by n8mod_core_v1
 [[ -v ERRNUM_MSG_ALREADY_SHOWN     ]] || declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
 
 ## Required by n8mod_user_v1
