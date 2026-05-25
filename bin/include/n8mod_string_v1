@@ -51,83 +51,61 @@ fi
 ####•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 #### Functions
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-##	Purpose:
-##		- Pure bash `grep -E` replacement using ERE via [[ =~ ]].
-##	NOTE:
-##		- This does not allow data to be piped in from stdin, unlike `grep`,
-##		  because:
-##		    1. If you used pipes, you'd create a subshell, and obviate the
-##		       advantage of using this (avoiding that performance hit). If
-##		       you need to use a pipe, you might as well use `grep`.
-##		    2. Then this function couldn't use namerefs, which is another
-##		       speedup tactic when working with large strings.
-##	Features:
-##		- Supports: groups (), alternation '|', character classes [abc],
-##		  negated [^x], POSIX classes [[:alpha:]], anchors ^ $,
-##		  wildcard ., quantifiers * + ? {n,m}.
-##		- Does NOT support: PCRE (e.g. `grep -P`). No lookahead/behind,
-##		  no \d \w \s (use [0-9] [[:alnum:]] [[:space:]]). Also -o only
-##		  returns the first match, like `grep -o 'a' <<< "abba" | head -n 1`.
-##		- Requires bash 4.3+ (namerefs), ERE support via system regex engine.
-##	Usage: fBgrep  [RetVar]  [Flags: -iov]  <RegEx>  <InVar>
-##		RetVar    Optional nameref: Receives result as single newline-joined string.
-##		            Only optional if 'q' is among flags. Not set if -q present.
-##		Flags     Optional single string:
-##		  -i        Case-insensitive (uses nocasematch, restored after).
-##		  -o        Output only matched portion (BASH_REMATCH[0])
-##		              Limited to first match per line only; which is the most common
-##		              use-case anyway e.g. `grep -o | head -n 1`.
-##		  -q        Set return value , just like `grep -q`.
-##		              If not set, this always `return 0`, unless there's an error.
-##		              Even for `-v` (which is different than `grep`).
-##		  -v        Invert match (inherently incompatible with -o).
-##		RegEx     REQUIRED string: ERE pattern string.
-##		InVar     REQUIRED namref: Input variable, that contains the main
-##                  string to match against. (In `grep` this is usually piped in.)
-##	Examples:
-##		fBgrep resultVar  -i   'foo|bar'   inputVar
-##		fBgrep resultVar  -io  'foo|bar'   inputVar
-##		fBgrep resultVar  -iv  'foo'       inputVar
-##		fBgrep resultVar  -o   '[0-9]+'    inputVar
-##		fBgrep            -q   '^[0-9]+$'  inputVar  ## Return 0 or 1
 fBgrep() {
+	##	Purpose:
+	##		- Pure bash `grep -E` replacement using ERE via [[ =~ ]].
+	##	NOTE:
+	##		- This does not allow data to be piped in from stdin, unlike `grep`,
+	##		  because:
+	##		    1. If you used pipes, you'd create a subshell, and obviate the
+	##		       advantage of using this (avoiding that performance hit). If
+	##		       you need to use a pipe, you might as well use `grep`.
+	##		    2. Then this function couldn't use namerefs, which is another
+	##		       speedup tactic when working with large strings.
+	##	Features:
+	##		- Supports: groups (), alternation '|', character classes [abc],
+	##		  negated [^x], POSIX classes [[:alpha:]], anchors ^ $,
+	##		  wildcard ., quantifiers * + ? {n,m}.
+	##		- Does NOT support: PCRE (e.g. `grep -P`). No lookahead/behind,
+	##		  no \d \w \s (use [0-9] [[:alnum:]] [[:space:]]). Also -o only
+	##		  returns the first match, like `grep -o 'a' <<< "abba" | head -n 1`.
+	##		- Requires bash 4.3+ (namerefs), ERE support via system regex engine.
+	##	Usage: fBgrep  <RetVar>  <Flags: -iov|-->  <RegEx>  <InVar>
+	##		RetVar    REQUIRED nameref: Receives result as single newline-joined string.
+	##		Flags     REQUIRED single string (can be '' or '--' for no flags):
+	##		  -i        Case-insensitive (uses nocasematch, restored after).
+	##		  -o        Output only matched portion (BASH_REMATCH[0])
+	##		              Limited to first match per line only; which is the most common
+	##		              use-case anyway e.g. `grep -o | head -n 1`.
+	##		  -v        Invert match (inherently incompatible with -o).
+	##		RegEx     REQUIRED string: ERE pattern string.
+	##		InVar     REQUIRED namref: Input variable, that contains the main
+	##                  string to match against. (In `grep` this is usually piped in.)
+	##	Examples:
+	##		fBgrep resultVar  -i   'foo|bar'   inputVar
+	##		fBgrep resultVar  -io  'foo|bar'   inputVar
+	##		fBgrep resultVar  -iv  'foo'       inputVar
+	##		fBgrep resultVar  -o   '[0-9]+'    inputVar
+	##		fBgrep resultVar  --   '^[0-9]+$'  inputVar
+	##	History:
+	##		- 20260523 JC: Finished version with:
+	##			- Optional RetVar (if also pass -q).
+	##			- Optional flags.
+	##			- Requires a loop for arg processing.
+	##		- 20260524 JC: Arg processing is too complex for a function that
+	##			           must be light and ultra-fast, so:
+	##			- Removed -q as an option (separate function instead).
+	##			- Made all args required ('--' if no options).
+
+	## Validate nameref args [use raw comparison instead of fIsNameref() for hotpath].
+	nref="${1:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	nref="${4:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 
 	## Gather args
-	local -i needArg_Flags=1
-	local -i needArg_OutputNameref=1
-	local -i needArg_Regex=1
-	local -i needArg_InputNameref=1
-	local -n ptr_Output_t5qdb
-	local    arg_Flags=""
-	local    regEx=""
-	local -n ptr_Input_t5qdb
-	local -i doFuncReturnVal=0  ## =0 if ignoring nameref variable and using `return` value; =1 if assiging result to nameref variable and always returning 0.
-	for nextArg in "${@}"; do
-		#echo "nextArg: '${nextArg}'"  ## DEBUG
-		if [[ "${nextArg}" == '--' ]]; then
-			needArg_Flags=0
-		elif ((needArg_Flags)) && [[ ${nextArg} == -* ]]; then
-			needArg_Flags=0
-			arg_Flags="${nextArg}"
-			if [[ ${nextArg} =~ \-[iov]*q ]]; then
-				doFuncReturnVal=1        ## Going to `return 0|1`, rather than populate doFuncReturnVal
-				needArg_OutputNameref=0  ## With -q, we're not gathering an output variable nameref.
-			fi
-		elif ((needArg_OutputNameref)) ; then
-			[[ -z "${nextArg}" || ! -v ${nextArg} ]]  &&  { fThrowError "Calling function must pass as the first argument, either unary flag(s) containing at least 'q', or a caller variable by nameref to receive this function's output. Arg1: '${1}', Arg2: '${2}'. [¥I🜿🝅]" ; return $ERRNUM_MSG_ALREADY_SHOWN; }
-			needArg_OutputNameref=0
-			ptr_Output_t5qdb=${nextArg}  ## Nameref to put output in.
-		elif ((needArg_Regex))         ; then
-			needArg_Regex=0
-			regEx="${nextArg}"
-		elif ((needArg_InputNameref))  ; then
-			[[ -z "${nextArg}" || ! -v ${nextArg} ]]  &&  { fThrowError "Calling function must pass as the last argument, a caller variable by nameref, containing the string to apply the regex to. [¥I🜿Ú]" ; return $ERRNUM_MSG_ALREADY_SHOWN; }
-			needArg_InputNameref=0
-			ptr_Input_t5qdb=${nextArg}
-		fi
-	done;:
-	readonly  arg_Flags  regEx  doFuncReturnVal
+	local -n ptr_Output_t5qdb=$1 ; shift || :
+	local -r arg_Flags="${1:-}"  ; shift || :
+	local -r regEx="${1:-}"      ; shift || :
+	local -n ptr_Input_t5qdb=$1  ; shift || :
 
 	## Parse flags
 	local  doInvertMatch=0  doIgnoreCase=0  doOnly=0
@@ -136,30 +114,29 @@ fBgrep() {
 	[[ ${arg_Flags} == *o* ]] && doOnly=1
 	readonly  doInvertMatch  doIgnoreCase  doOnly
 
-	##DEBUG
-	#echo -e "\n\n"
-	#echo "needArg_Flags ...........: '${needArg_Flags}'"
-	#echo "needArg_OutputNameref ...: '${needArg_OutputNameref}'"
-	#echo "needArg_Regex ...........: '${needArg_Regex}'"
-	#echo "needArg_InputNameref ....: '${needArg_InputNameref}'"
-	#(echo "\${!ptr_Output_t5qdb} ...: '${!ptr_Output_t5qdb}'") || :
-	#echo "arg_Flags ...............: '${arg_Flags}'"
-	#echo "doInvertMatch ...........: '${doInvertMatch}'"
-	#echo "doIgnoreCase ............: '${doIgnoreCase}'"
-	#echo "doOnly ..................: '${doOnly}'"
-	#echo "doFuncReturnVal .........: '${doFuncReturnVal}'"
-	#echo "regEx ...................: '${regEx}'"
-	#(echo "\${!ptr_Input_t5qdb} ....: '${!ptr_Input_t5qdb}'") || :
-	#(echo "\${ptr_Input_t5qdb} .....: '${ptr_Input_t5qdb}'") || :
-
 	## Validate
 	((doOnly  &&  doInvertMatch))                             &&  { fThrowError 'Flags -o and -v togother, are incompatible.'                                                                                                                                                            ; return $ERRNUM_MSG_ALREADY_SHOWN; }
-	((needArg_OutputNameref  &&  !doFuncReturnVal))           &&  { fThrowError "Calling function must pass as the first argument, either unary flag(s) containing at least 'q', or a caller variable by nameref to receive this function's output. Arg1: '${1}', Arg2: '${2}'. [¥I🜿ϟ]"  ; return $ERRNUM_MSG_ALREADY_SHOWN; }
-	((needArg_Regex))                                         &&  { fThrowError "No regex was passed, not even an empy one."                                                                                                                                                             ; return $ERRNUM_MSG_ALREADY_SHOWN; }
-	((needArg_InputNameref))                                  &&  { fThrowError "Calling function must pass as the last argument, a caller variable by nameref, containing the string to apply the regex to. [¥I🜿ÿ]"                                                                     ; return $ERRNUM_MSG_ALREADY_SHOWN; }
 
 	## Init
-	((!doFuncReturnVal)) && ptr_Output_t5qdb=""
+	ptr_Output_t5qdb=""  ## Empty return is the default.
+
+	## Check opptys for early exit, without having to run regex. (All non-error return values are 0 in this function. See fBgrepQ for an return value version.)
+	if [[ -z "${ptr_Input_t5qdb}" ]]; then
+		## Grep with empty input always returns empty, and exit 1 - no matter the flags or regex.
+		return
+	elif [[ -z "${regEx}" ]]; then
+		if ((doInvertMatch)); then
+			## `grep -E` with empty regex AND `-v` always returns empty, and exit 1.
+			return
+		elif ((doOnly)); then
+			## `grep -E` with empty regex AND `-o` always returns empty, and exit 0.
+			return
+		else
+			## Otherwise, `grep -E` with empty regex (with non-empty input and no flags) returns original input, and exit 0.
+			ptr_Output_t5qdb="${ptr_Input_t5qdb}"
+			return
+		fi
+	fi
 
 	# save and set nocasematch if -i
 	local -i doRestore_Set_nocasematch=0
@@ -184,22 +161,66 @@ fBgrep() {
 	(( doIgnoreCase ))  &&  { if (( doRestore_Set_nocasematch )); then shopt -s nocasematch; else shopt -u nocasematch; fi; } ;:
 
 	## Set output
-	retValStr="${retValStr%$'\n'}"  ## Trim trailing newline
-	((!doFuncReturnVal)) && ptr_Output_t5qdb="${retValStr}"
+	ptr_Output_t5qdb="${retValStr%$'\n'}"  ## Trim trailing newline
 
-	## Determine return value.
-	local -i functionRetVal=0
-	((doFuncReturnVal  &&  ${#retValStr} == 0))  &&  functionRetVal=1
-	return ${functionRetVal}
+}
+
+fBgrepQ() {
+	##	Purpose:
+	##		- Pure bash `grep -Eq` replacement using ERE via [[ =~ ]].
+	##		- Rather than returning a string, the function returns 0 (match)
+	##		  or 1 (not match).
+	##		- Mostly a wrapper for fBgrep, so it doesn't have to hassle with
+	##		  handling '-q', as fBgrep_WithQ_DEPREC(), which was expensive
+	##		  with an arg parsing array and more oppty for bugs.
+	##	NOTE:
+	##		- See fBgrep() for flags and arguments. Except...
+	##		- There is no 'output' namevar argument.
+	##	History:
+	##		- 20260524 JC: Created.
+
+	## Validate nameref args [use raw comparison instead of fIsNameref() for hotpath].
+	nref="${3:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { fThrowError "Invalid nameref argument '${nref}'. Are one or more arguments missing?" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+
+	## Gather args
+	local -r arg_Flags="${1:-}"  ; shift || :
+	local -r regEx="${1:-}"      ; shift || :
+	local -n ptr_Input_t5rrs=$1  ; shift || :
+
+	## Check opptys for early exit, without having to run fBgrep.
+	if [[ -z "${ptr_Input_t5rrs}" ]]; then
+		## Grep with empty input always returns empty, and exit 1 - no matter the flags or regex.
+		return 1
+	elif [[ -z "${regEx}" ]]; then
+		if [[ "${arg_Flags}" == *v* ]]; then
+			## `grep -E` with empty regex AND `-v` always returns empty, and exit 1.
+			return 1
+		elif [[ "${arg_Flags}" == *o* ]]; then
+			## `grep -E` with empty regex AND `-o` always returns empty, and exit 0.
+			return 0
+		else
+			## Otherwise, `grep -E` with empty regex (with non-empty input and no flags) returns original input, and exit 0.
+			return 0
+		fi
+	fi
+
+	## Variables
+	local bgrep_Output=""
+
+	## Call fBgrep()
+	fBgrep  bgrep_Output  "${arg_Flags}"  "${regEx}"  ptr_Input_t5rrs
+
+	## If anything was returned, even with `-o` or `-v`, that's a sucess.
+	if [[ -n "${bgrep_Output}" ]]; then return 0; else return 1; fi
 
 }
 
 fGetStrMatchPos(){
 	##	Purpose: Returns 1-based index of position of first match. 0= no match.
 	##	Notes: Uses namerefs in so that any of the strings can be huge, with less performance hit.
-	## Validate nameref args:
-	[[ -v 1 ]]  ||  { fThrowError "Calling function must pass a nameref to receive this function's integer output, as arg1." ; return $ERRNUM_MSG_ALREADY_SHOWN; }
-	[[ -v 2 ]]  ||  { fThrowError "Calling function must pass a nameref to supply arg2 to this function (the source string)."  ; return $ERRNUM_MSG_ALREADY_SHOWN; }
+	## Validate nameref args
+	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
+	fIsNameref "${2:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
 	## Gather args
 	local -n ptr_Output_s74ht=$1         ; shift || :  ## Arg <REQUIRED>: Nameref: Int return value, 0=no match, >=1 position of start of firt match.
 	local -n ptr_SuperString_s74ht=$1    ; shift || :  ## Arg <REQUIRED>: Nameref: String: Main string to search in.
@@ -215,10 +236,10 @@ fGetStrMatchPos(){
 fSplitStr (){
 	##	Purpose: Split a string into left and right parts, on first occurrence of a given delimiter and specified scan direction.
 	##	Notes: Uses namerefs in so that any of the strings can be huge, with less performance hit.
-	## Validate nameref args:
-	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref as arg1 to receive this function's 'left' output."
-	[[ -v 2 ]] || fThrowError "Calling function must pass a nameref as arg2 to receive this function's 'right' output."
-	[[ -v 3 ]] || fThrowError "Calling function must pass a nameref to supply arg3 as the input source string to this function (source string to split)."
+	## Validate nameref args
+	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
+	fIsNameref "${2:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
+	fIsNameref "${3:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
 	## Gather args
 	local -n  ptr_output_LeftStr_s8hd0=$1       ; shift || :  ## Arg <REQUIRED>: Nameref: Str return value; left substring.
 	local -n  ptr_output_RightStr_s8hd0=$1      ; shift || :  ## Arg <REQUIRED>: Nameref: Str return value; right substring.
@@ -259,8 +280,8 @@ if [[ ! -v BUILD_QUOTED_PARAMS_CHECK_PATTERN ]]; then
 	declare -gri BUILD_QUOTED_PARAMS_MAX_BLANK=10
 fi
 fBuildQuotedParams(){
-	## Validate nameref args:
-	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to receive this function's output, as arg1."
+	## Validate nameref args
+	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
 	## Gather args
 	local -n ptr_Output_1mtkp9p=1  # ; shift || :  ## The caller variable to instert the return value into.
 	## Init
@@ -311,3 +332,4 @@ declare -i isSourced_t5jec=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
+##		- 20260523 JC: Finished fBgrep(), bash-native grep -E. (With '-q'.)

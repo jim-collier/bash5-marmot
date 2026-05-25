@@ -260,8 +260,8 @@ fResolvePath_v1(){
 	## Purpose: Resolves an argument to a canonical full path, while being careful to not be too broad as to resolve to something else with the same name.
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
-	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	## Validate nameref args (with no modules loaded to help)
+	nref="${1:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Invalid nameref argument '${nref}'. Are one or more arguments missing?.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
@@ -422,7 +422,7 @@ fEcho_WasLastEchoBlank_Get()  { { ((_wasLastEchoBlank > 0)) && return 0; } || re
 fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMode=1; } || { _isEchoInRawInlineMode=0; _wasLastEchoBlank=0; echo; }; }  ## Script it telling fEcho* that something is going to be echoing to the screen in non-linefeed mode without its knowledge. (E.g. "echo -n 'something: '".)
 fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 fEcho_Clean_byref(){
-	## Validate nameref args:
+	## One of the hottest paths. Minimal validation of input, for speed.
 	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
 	## Gather args
 	local -n ptr_ToEcho_t5jf2=$1
