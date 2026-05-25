@@ -59,9 +59,11 @@ fLog_GetFilespec(){
 	##		2 [optional]: LogDir       If not specified, defaults to "$(fGetOgUserHome)/var/log/${meName}"
 	##		3 [optional]: logFileName  If NOT specified, logfile rotation will work, and defaults to "${meName}_${serialDT}.log"
 	##		4 [optional]: Username for ownership and/or homedir calculation
-	local -n refVar=$1 ; shift || true
+	## Validate nameref args
+	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
+	local -n ptr_Output_t5rt5=$1 ; shift || :
 	__pLog_InitVars  "${1:-}"  "${2:-}"  "${3:-}"
-	refVar="${_vLog_Filespec}"
+	ptr_Output_t5rt5="${_vLog_Filespec}"  ## Return value stored in global variable.
 }
 
 fLog_Init(){
