@@ -423,7 +423,7 @@ fEcho_IsInRawInlineMode_Set() { { [[ "${1:-}" == "1" ]] && _isEchoInRawInlineMod
 fEcho_IsInRawInlineMode_Get() { { ((_isEchoInRawInlineMode)) && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 fEcho_Clean_byref(){
 	## One of the hottest paths. Minimal validation of input, for speed.
-	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
+	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
 	## Gather args
 	local -n ptr_ToEcho_t5jf2=$1
 	## Logic

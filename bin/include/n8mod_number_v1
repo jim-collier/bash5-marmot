@@ -54,7 +54,7 @@ fIsBool(){
 	case "${inputVal,,}" in
 		"1"|"true"|"yes"|"y"|"t")                           return 0  ;;  ## 0 for function return means "success", it is boolean.
 		"0"|"false"|"no"|"n"|"f")                           return 0  ;;  ## 0 for function return means "success", it is boolean.
-		*) [[ "${inputVal}" =~ $FBGREPE_REGEX_INTEGER ]] && return 0  ;;  ## 0 for function return means "success", it is boolean.
+		*) [[ "${inputVal}" =~ $FBGREP_REGEX_INTEGER ]] && return 0  ;;  ## 0 for function return means "success", it is boolean.
 	esac
 	return ${ERRNUM_MSG_ALREADY_SHOWN}  ## 1 for function return means "failure", it is not boolean.
 }
@@ -68,7 +68,7 @@ fIsBoolTrue(){
 		"1"|"true"|"yes"|"y"|"t")  return 0  ;;  ## 0 means function "success", or boolean true.
 		"0"|"false"|"no"|"n"|"f")  return ${ERRNUM_MSG_ALREADY_SHOWN}  ;;  ## >0 means "failure", or boolean false.
 		*)
-			if [[ "${inputVal}" =~ $FBGREPE_REGEX_INTEGER ]]; then
+			if [[ "${inputVal}" =~ $FBGREP_REGEX_INTEGER ]]; then
 				((inputVal == 0)) && return ${ERRNUM_MSG_ALREADY_SHOWN}  ## 1 for function return means "failure", or boolean false.
 				return 0  ## 0 means function "success", or boolean true.
 			fi
