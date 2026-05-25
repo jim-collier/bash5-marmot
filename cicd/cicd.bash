@@ -26,14 +26,13 @@
 ##	SPDX-License-Identifier: MIT
 
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Constants
+## Settings
 if [[ -z "${doQuietly+x}" ]]; then
 
 	## Settings (relative paths defined here will be verified and resolved later)
 	declare    dirPath_Base=".."
 	declare    dirPath_Source="${dirPath_Base}/bin"
-	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/template.bash"
+	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/0_x9bash5-template.bash"
 	declare    dirAlsoCopyInstall_Subdir_Source="${dirPath_Base}/bin/include"
 	declare    dirAlsoCopyInstall_Subdir_Target="include"
 	declare    filePath_TesterExec="${dirPath_Base}/cicd/test.bash"
@@ -52,6 +51,9 @@ if [[ -z "${doQuietly+x}" ]]; then
 	declare -ri doAsSudo=0
 	declare -i wasShown_Version=0 wasShown_Copyright=0 wasShown_About=0 wasShown_Syntax=0
 fi
+
+## Also populated by n8mod_core_v1
+[[ -v ERRNUM_MSG_ALREADY_SHOWN     ]] || declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
 
 
 ## Version, copyright, about, syntax (minified but not obfuscated)

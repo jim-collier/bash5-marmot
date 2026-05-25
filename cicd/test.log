@@ -1,30 +1,30 @@
-[20260524-205743.0168]  
-[20260524-205743.0185]  Error in n8mod_core_v1.fIsFunction(): Not a function: 'NOTAFUNC'.
-[20260524-205743.0194]  Call stack: fIsFunction(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.0633]  
-[20260524-205743.0651]  Error in n8mod_number_v1.fIsBoolTrue(): Input value is not boolean: ''.
-[20260524-205743.0658]  Call stack: fIsBoolTrue(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.0730]  
-[20260524-205743.0747]  Error in n8mod_number_v1.fIsBoolTrue(): Input value is not boolean: 'BOGUSVAL'.
-[20260524-205743.0754]  Call stack: fIsBoolTrue(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.1201]  
-[20260524-205743.1217]  Error in n8mod_number_v1.fGetRandomInt(): The range between low and high (10000000000) is too large. Can't exceed 4,294,967,295.
-[20260524-205743.1226]  Call stack: fGetRandomInt(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.6387]  
-[20260524-205743.6405]  Error in n8mod_string_v1.fBgrep(): Invalid nameref argument '-i'. Are one or more arguments missing?
-[20260524-205743.6412]  Call stack: fBgrep(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.6453]  
-[20260524-205743.6470]  Error in n8mod_string_v1.fBgrep(): Invalid nameref argument ''. Are one or more arguments missing?
-[20260524-205743.6477]  Call stack: fBgrep(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.6518]  
-[20260524-205743.6535]  Error in n8mod_string_v1.fBgrep(): Invalid nameref argument 'NOTVALID'. Are one or more arguments missing?
-[20260524-205743.6541]  Call stack: fBgrep(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.6722]  
-[20260524-205743.6738]  Error in n8mod_string_v1.fBgrepQ(): Invalid nameref argument ''. Are one or more arguments missing?
-[20260524-205743.6747]  Call stack: fBgrepQ(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.6930]  
-[20260524-205743.6947]  Error in n8mod_string_v1.fGetStrMatchPos(): Invalid nameref argument 'woohoo'. Are one or more arguments missing?
-[20260524-205743.6954]  Call stack: fGetStrMatchPos(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
-[20260524-205743.6994]  
-[20260524-205743.7011]  Error in n8mod_string_v1.fGetStrMatchPos(): Invalid nameref argument 'woohoo'. Are one or more arguments missing?
-[20260524-205743.7017]  Call stack: fGetStrMatchPos(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090239.8909]  
+[20260525-090239.8927]  Error in n8mod_core_v1.fIsFunction(): Not a function: 'NOTAFUNC'.
+[20260525-090239.8937]  Call stack: fIsFunction(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090239.9351]  
+[20260525-090239.9368]  Error in n8mod_number_v1.fIsBoolTrue(): Input value is not boolean: ''.
+[20260525-090239.9378]  Call stack: fIsBoolTrue(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090239.9455]  
+[20260525-090239.9472]  Error in n8mod_number_v1.fIsBoolTrue(): Input value is not boolean: 'BOGUSVAL'.
+[20260525-090239.9480]  Call stack: fIsBoolTrue(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090239.9937]  
+[20260525-090239.9956]  Error in n8mod_number_v1.fGetRandomInt(): The range between low and high (10000000000) is too large. Can't exceed 4,294,967,295.
+[20260525-090239.9965]  Call stack: fGetRandomInt(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090240.5226]  
+[20260525-090240.5244]  Error in n8mod_string_v1.fBgrep(): Invalid nameref argument '-i'. Are one or more arguments missing?
+[20260525-090240.5254]  Call stack: fBgrep(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090240.5305]  
+[20260525-090240.5322]  Error in n8mod_string_v1.fBgrep(): Invalid nameref argument ''. Are one or more arguments missing?
+[20260525-090240.5331]  Call stack: fBgrep(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090240.5377]  
+[20260525-090240.5394]  Error in n8mod_string_v1.fBgrep(): Invalid nameref argument 'NOTVALID'. Are one or more arguments missing?
+[20260525-090240.5403]  Call stack: fBgrep(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090240.5595]  
+[20260525-090240.5613]  Error in n8mod_string_v1.fBgrepQ(): Invalid nameref argument ''. Are one or more arguments missing?
+[20260525-090240.5623]  Call stack: fBgrepQ(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090240.5820]  
+[20260525-090240.5838]  Error in n8mod_string_v1.fGetStrMatchPos(): Invalid nameref argument 'woohoo'. Are one or more arguments missing?
+[20260525-090240.5847]  Call stack: fGetStrMatchPos(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
+[20260525-090240.5896]  
+[20260525-090240.5914]  Error in n8mod_string_v1.fGetStrMatchPos(): Invalid nameref argument 'woohoo'. Are one or more arguments missing?
+[20260525-090240.5923]  Call stack: fGetStrMatchPos(), fRunTest_ExecCmd_v1(), fMain_Test(), n8mod_core_v1
