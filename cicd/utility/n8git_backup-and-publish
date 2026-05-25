@@ -54,7 +54,7 @@ fAbout(){ { ((doQuietly)) || ((wasShown_About)); } && return; wasShown_About=1;
 	#           X-------------------------------------------------------------------------------X
 	fEcho_Clean "Backs up a github directory to a versioned archive, and publishes changes, ie:"
 	fEcho_Clean "  • rar {flags} ../versions/{version}.rar  ../*"
-	fEcho_Clean "  • git stash  &&  git pull --rebase  &&  git stash pop"
+	fEcho_Clean "  • git stash push --include-untracked &&  git pull --no-ff  &&  git stash pop"
 	fEcho_Clean "  • git add --all  &&  git commit"
 	fEcho_Clean "  • git push origin"
 	#           X-------------------------------------------------------------------------------X
@@ -88,7 +88,7 @@ fMain(){
 	local -i wasShown_Copyright=0; local -i wasShown_About=0; wasShown_Syntax=0
 
 	## Check for need to show help
-	{ ((atLeastOneArgRequired)) && [[ -z "${1:-}${2:-}${3:-}${4:-}" ]]; } && { fCopyright; fAbout; fSyntax; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	{ ((atLeastOneArgRequired)) && [[ -z "${1:-}${2:-}${3:-}${4:-}" ]]; } && { fCopyright; fAbout; fSyntax; return 1; }
 	case " ${*,,} " in
 		*" -h "*|*" --help "*)                 fCopyright; fAbout; fSyntax; return 0; ;;
 		*" -v "*|*" --ver "*|*" --version "*)  fCopyright;                  return 0; ;;
@@ -150,18 +150,22 @@ fMain(){
 
 	## Variables for git actions
 	local -i didStash=0
+	local -i preCount
+	local -i postCount
 
 	## Stash
 	if ! git diff --quiet || ! git diff --cached --quiet; then
-		fEcho; fEcho "git stash push ..."
-		git stash push -u -m "auto-stash"
-		didStash=1
+		fEcho; fEcho "git stash push --include-untracked..."
+		preCount=$(git stash list | wc -l)
+		git stash push --include-untracked -m "auto-stash"
+		postCount=$(git stash list | wc -l)
+		didStash=$((postCount > preCount ? 1 : 0))
 	fi
 
 	## Pull with rebase
 	if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
-		fEcho; fEcho "git pull --rebase ..."
-		git pull --rebase
+		fEcho; fEcho "git pull --no-ff ..."
+		git pull --no-ff
 	fi
 
 	## Stash pop
@@ -189,7 +193,7 @@ fMain(){
 	fi
 
 	## Done
-	((! doQuietly)) && { fEcho_Force; fEcho "Done."; }
+	((! doQuietly)) && { fEcho_Force; fEcho "${meName}: Done."; }
 }
 
 #••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -312,8 +316,8 @@ fParseArgs(){
 ## Generic functions
 fDoesDirHaveContents(){
 	[[   -z "${1}" ]]  &&  fThrowError  "No directory specified as arg 1."  "fDoesDirHaveContents"
-	[[ ! -d "${1}" ]]                                     && return ${ERRNUM_MSG_ALREADY_SHOWN}
-	[[   -z "$(ls -1A "${1%%/}/" 2>/dev/null || true)" ]] && return ${ERRNUM_MSG_ALREADY_SHOWN}
+	[[ ! -d "${1}" ]]                                     && return 1
+	[[   -z "$(ls -1A "${1%%/}/" 2>/dev/null || true)" ]] && return 1
 	return 0; }
 fBuildQuotedParams(){
 	local -n varName_1mtkp9p=$1 ; shift || true
@@ -324,23 +328,23 @@ fMustBeInPath(){
 	##	Unit tests passed on: 20250704.
 	local -r programToCheckForInPath="${1:-}"
 	if [[ -z "${programToCheckForInPath}" ]]; then
-		fThrowError "Not program specified."  "${FUNCNAME[0]}"; return ${ERRNUM_MSG_ALREADY_SHOWN}
+		fThrowError "Not program specified."  "${FUNCNAME[0]}"; return 1
 	elif [[ -z "$(which ${programToCheckForInPath} 2>/dev/null || true)" ]]; then
-		fThrowError "Not found in path: ${programToCheckForInPath}"; return ${ERRNUM_MSG_ALREADY_SHOWN}
+		fThrowError "Not found in path: ${programToCheckForInPath}"; return 1
 	fi ;:;}
 fIntroPromptToContinue(){
 	{ ((doQuietly)) || ((! doPromptToContinue)); } && return 0
 	local -r extraInfoString="${1:-}"
 	{ fEcho_Clean; fCopyright; fAbout; fEcho_Clean; }
 	[[ -n "${extraInfoString}" ]]  &&  { fEcho_Clean; fEcho_Clean "${extraInfoString}"; }
-	fPromptYN "Continue? (y|n): "  ||  { fEcho "User aborted."; return ${ERRNUM_MSG_ALREADY_SHOWN}; }; }
+	fPromptYN "Continue? (y|n): "  ||  { fEcho "User aborted."; return 1; }; }
 fPromptYN(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
 	[[ -z "${promptStr}" ]] && promptStr="Continue? (y|n): "
 	read -r -p "${promptStr}" userAnswer
 	fEcho_ResetBlankCounter
-	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return 1; }
 
 ## Echo-related
 declare -i _wasLastEchoBlank=0
@@ -366,7 +370,7 @@ _fSingleExitPoint(){
 		echo "User interrupted." >&2
 		fEcho_ResetBlankCounter
 		fCleanup  ## User cleanup
-		exit ${ERRNUM_MSG_ALREADY_SHOWN}
+		exit 1
 	elif [[ "${exitCode}" != "0" ]] && [[ "${exitCode}" != "1" ]]; then  ## Clunky string compare is less likely to fail than integer
 		fEcho_Clean
 		echo -e "Signal .....: '${signal}'"      >&2
@@ -391,7 +395,7 @@ _fTrap_Error(){
 		_fSingleExitPoint "${@}"
 	fi ;}
 _fTrap_Error_Ignore(){ _ErrVal=1; true;  return 0; }
-_fTrap_Error_Soft(){   _ErrVal=1; false; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+_fTrap_Error_Soft(){   _ErrVal=1; false; return 1; }
 fThrowError(){
 	local errMsg="${1:-}"         ; [[ -z "${errMsg}"      ]] && errMsg="An error occurred."
 	local meNameLocal="${meName}" ; [[ -n "${meNameLocal}" ]] && errMsg="${meNameLocal}: ${errMsg}"
@@ -403,7 +407,7 @@ fThrowError(){
 	[[ -n "${callStack}" ]] && callStack="Reverse call stack: ${callStack}"
 	fEcho_Clean; echo -e "${errMsg}\n${callStack}" >&2; fEcho_Clean_Force
 	_ErrVal=1
-	{ ((_doExitOnThrow)) && exit ${ERRNUM_MSG_ALREADY_SHOWN}; } || return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	{ ((_doExitOnThrow)) && exit 1; } || return 1; }
 fDefineTrap_Error_Fatal(){        :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error         ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Standard; exits script on any caught error; but 'set -e' has known inconsistencies catching or ignoring errors.
 fDefineTrap_Error_ExitOnThrow(){  :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error         ERR    ${LINENO}  $?  $_' ERR; set +e; } ## Only exits script on fThrowError().
 fDefineTrap_Error_Soft(){         :; _ErrVal=0; _doExitOnThrow=0; trap '_fTrap_Error_Soft    ERR    ${LINENO}  $?  $_' ERR; set -e; } ## Returns error code of 1 on error.
