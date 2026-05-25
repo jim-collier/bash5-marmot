@@ -369,7 +369,7 @@ declare -i isSourced_t5jec=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 #fIsFunction fLoadModule_v1     ||  fThrowError "The function 'fLoadModule_v1' must be defined by the calling script, for this module to work."
 
 ## Load dependency modules other than n8mod_code_v1.
-#[[ -v N8MOD_ISLOADED_NUMEBR_V1 ]] || fLoadModule_v1  n8mod_number_v1
+#[[ -v N8MOD_ISLOADED_NUMBER_V1 ]] || fLoadModule_v1  n8mod_number_v1
 
 ## Flag this module as loaded.
 [[ -v N8MOD_ISLOADED_STRING_V1 ]] || declare -gr N8MOD_ISLOADED_STRING_V1=1
