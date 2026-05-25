@@ -34,7 +34,7 @@
 ## Setting for this script.
 ## Paths will be evaluated relative to this script's folder.
 declare doLongTest=0 ; [[ "${CICDTEST_DO_LONGTEST}" == "1" ]] && doLongTest=1
-[[ -v exe1 ]] || declare exe1="../bin/template.bash"
+[[ -v exe1 ]] || declare exe1="../bin/0_x9bash5-template.bash"
 
 ## Required by n8mod_core_v1
 if [[ ! -v THIS_FILEPATH ]]; then
