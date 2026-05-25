@@ -26,14 +26,10 @@
 ##	SPDX-License-Identifier: MIT
 
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-# Globals
-
+## Globals
 if [[ ! -v ABORT_ON_FIRST_ERROR ]]; then
 	## Settings
 	declare -gri ABORT_ON_FIRST_ERROR=1
-	## Internal members
-	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
 	## Global counters
 	declare -gi  currentPassStreak=0
 	declare -g   __fRunTest_EchoHook1=""
@@ -47,10 +43,8 @@ if [[ ! -v ABORT_ON_FIRST_ERROR ]]; then
 	declare -g  __flib_test__saved_errtrap=""
 fi
 
-## n8mod_core_v1
-if [[ ! -v ERRNUM_MSG_ALREADY_SHOWN ]]; then
-	declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
-fi
+## Populated by n8mod_core_v1
+[[ -v ERRNUM_MSG_ALREADY_SHOWN ]] || declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
 
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -233,10 +227,10 @@ fRunTest_ExecCmd_v1(){
 		doConditionalAbort=1
 	fi
 
-	local exeName=""  exeArgs=""
-	fGetIsolatedExeName  exeName  exeArgs  "${cmdStr}"
+#	local exeName=""  exeArgs=""
+#	fGetIsolatedExeName  exeName  exeArgs  "${cmdStr}"
 	[[ -n "${__fRunTest_EchoHook1:-}" ]] && { fEcho_Clean "${__fRunTest_EchoHook1:-}"; __fRunTest_EchoHook1=""; }
-	fEcho_Clean "Test command ...: ${exeName}${exeArgs}"
+	fEcho_Clean "Test command ...: ${cmdStr}"
 	if [[ "${assertMode}" !=  *'err'* ]]; then
 		fEcho_Clean "Expected value .: '${expectVal}'"
 		fEcho_Clean "Actual value ...: '${gotVal}'"
@@ -517,7 +511,8 @@ if [[ ! -v FECHO_NEXT_TO_STDERR ]]; then
 	declare -gi _isEchoInRawInlineMode=0
 fi
 fEcho_Clean_byref(){
-	[[ -v 1  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
+	## One of the hottest paths. Minimal validation of input, for speed.
+	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (string to echo)."
 	local -n ptr_ToEcho_t5jf2=$1
 	local -i doEcho=0
 	## End 'InRawInlineMode'; Duplicate functionality of `fEcho_IsInRawInlineMode_Set 0`; only to stdout.

@@ -167,8 +167,8 @@ fShowCopyright(){
 
 fShowAbout(){
 	((doQuietly || wasShown_About)) && return 0
-	## Validate nameref args:
-	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 ('about' text)."
+	## Validate nameref args
+	fIsNameref  "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
 	## Gather args
 	local -n ptr_AboutText_t5j9j=$1
 	## Validate
@@ -180,8 +180,8 @@ fShowAbout(){
 
 fShowSyntax(){
 	((doQuietly || wasShown_Syntax)) && return 0
-	## Validate nameref args:
-	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function, as arg1 (syntax)."
+	## Validate nameref args
+	fIsNameref  "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
 	## Gather args
 	local -n ptr_SyntaxText_t5j9j=$1
 	## Validate

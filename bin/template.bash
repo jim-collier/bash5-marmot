@@ -27,26 +27,26 @@
 ##	SPDX-License-Identifier: MIT
 
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Module settings and constants
-
+## Settings required by this template
 if [[ ! -v ARGS_AT_LEAST_ONE_IS_REQUIRED ]]; then
-	## Required by this template
 	declare -gri ARGS_AT_LEAST_ONE_IS_REQUIRED=0
 	declare -gri ARGS_MAX_POSITIONAL_COUNT=0
 fi
+
+## Required by n8mod_core_v1
 if [[ ! -v THIS_FILEPATH ]]; then
-	## Required by n8mod_core_v1
 	declare -gr  THIS_FILEPATH="$(realpath -e "${0}")"
 	declare -gr  THIS_FILENAME="$(basename "${THIS_FILEPATH}")"
 	declare -gr  THIS_DIRPATH="$(dirname "${THIS_FILEPATH}")"
 	declare -gri DO_CHAIN_SUDO=1  ## Only used by fChainToFunction(), which you don't have to use even if this is 1.
-	## Populated by n8mod_core_v1
-	declare -g   SERIAL_DATETIME
-	declare -g   RELAUNCH_SENTINELVAL
 fi
+
+## Populated by n8mod_core_v1
+#declare -g   SERIAL_DATETIME
+#declare -g   RELAUNCH_SENTINELVAL
+
+## Required by n8mod_user_v1
 if [[ ! -v THIS_VERSION ]]; then
-	## Required by n8mod_user_v1
 	declare -gi doQuietly=0
 	declare -gi doPromptToContinue=1
 	declare -gr THIS_VERSION="1.0.0-beta1"
@@ -285,8 +285,8 @@ fResolvePath_v1(){
 	## Purpose: Resolves an argument to a canonical full path, while being careful to not be too broad as to resolve to something else with the same name.
 	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
-	## Validate nameref args
-	[[ -v 1 ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Calling function must pass a nameref to receive this function's output, as arg1.\n"                           ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	## Validate nameref args (with no modules loaded yet to help)
+	nref="${1:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Invalid nameref argument '${nref}'. Are one or more arguments missing?.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
 	local -r nameOrPath="${1:-}"               ; shift || :  ## File or folder path (relative or absolute). If an executable file, can be just a name to search in $PATH, to fully resolve.
@@ -362,6 +362,13 @@ declare -i isSourced_t5ja1=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ## Kick everything off (unless unit-testing)
 [[ "${1:-}" == '--unit-test' ]] || fInit "${@}"
 
+
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+##	Notes:
+##		Types of nameref validation
+##			[[ -v ptr_Output_nnnnn ]] || fThrowError "Calling function must pass a nameref to receive this function's output."
+##			[[ -v ptr_Input_nnnnn  ]] || fThrowError "Calling function must pass a nameref to supply the input value to this function."
+##			[[ -v ptr_Arg1_nnnnn   ]] || fThrowError "Calling function must pass a nameref to supply argument 1 to this function."
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## History:

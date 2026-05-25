@@ -43,9 +43,6 @@ if [[ ! -v THIS_LIB_FILE_PATH_t5jm0 ]]; then
 	declare -gr THIS_LIB_FILE_PATH_t5jm0="$(realpath -e "${BASH_SOURCE[0]}")"
 	declare -gr THIS_LIB_FILE_NAME_t5jm0="$(basename "${THIS_LIB_FILE_PATH_t5jm0}")" #...: Replace with native bash function when ready.
 	declare -gr THIS_LIB_DIR_PATH_t5jm0="$(dirname "${THIS_LIB_FILE_PATH_t5jm0}")" #.....: Replace with native bash function when ready.
-	## Bash-native regex
-	declare -gr BREGEX_IS_PURE_INT='^-?[0-9]+$'
-	declare -gr BREGEX_IS_PURE_INT_OR_FLOAT='^-?[0-9]+(\.[0-9]+)?$'
 fi
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -55,9 +52,9 @@ fIsBool(){
 	##	Purpose: Function return val of 0 [success] if input is boolean, >0 [failure] if not.
 	local -r inputVal="${1:-}"  # ; shift || :  ##
 	case "${inputVal,,}" in
-		"1"|"true"|"yes"|"y"|"t")                        return 0  ;;  ## 0 for function return means "success", it is boolean.
-		"0"|"false"|"no"|"n"|"f")                        return 0  ;;  ## 0 for function return means "success", it is boolean.
-		*) [[ "${inputVal}" =~ $BREGEX_IS_PURE_INT ]] && return 0  ;;  ## 0 for function return means "success", it is boolean.
+		"1"|"true"|"yes"|"y"|"t")                           return 0  ;;  ## 0 for function return means "success", it is boolean.
+		"0"|"false"|"no"|"n"|"f")                           return 0  ;;  ## 0 for function return means "success", it is boolean.
+		*) [[ "${inputVal}" =~ $FBGREPE_REGEX_INTEGER ]] && return 0  ;;  ## 0 for function return means "success", it is boolean.
 	esac
 	return ${ERRNUM_MSG_ALREADY_SHOWN}  ## 1 for function return means "failure", it is not boolean.
 }
@@ -71,7 +68,7 @@ fIsBoolTrue(){
 		"1"|"true"|"yes"|"y"|"t")  return 0  ;;  ## 0 means function "success", or boolean true.
 		"0"|"false"|"no"|"n"|"f")  return ${ERRNUM_MSG_ALREADY_SHOWN}  ;;  ## >0 means "failure", or boolean false.
 		*)
-			if [[ "${inputVal}" =~ $BREGEX_IS_PURE_INT ]]; then
+			if [[ "${inputVal}" =~ $FBGREPE_REGEX_INTEGER ]]; then
 				((inputVal == 0)) && return ${ERRNUM_MSG_ALREADY_SHOWN}  ## 1 for function return means "failure", or boolean false.
 				return 0  ## 0 means function "success", or boolean true.
 			fi
@@ -84,8 +81,8 @@ fGetRandomInt(){
 	##	Purpose: Return a cryptographically valid integer between low and high ints, inclusive.
 	##	WARNING: Bash >= 5.1 only.
 	##	This is ~40x faster than using subshells e.g. for `shuf`, and ~4x faster than fGetRandomInt_SlowerBetter().
-	## Validate nameref args:
-	[[ -v 1 ]] || fThrowError "Calling function must pass a nameref to receive this function's integer output, as arg1."
+	## Validate nameref args
+	fIsNameref  "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
 	## Gather args
 	local -n  ptr_Output_s8hk7=$1  ; shift || :  ## <REQUIRED>: Caller nameref for return int.
 	local -i  intLow=${1:-0}       ; shift || :  ## <REQUIRED>: Lowest int, inclusive. Can be negative.
