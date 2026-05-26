@@ -32,7 +32,7 @@ if [[ -z "${doQuietly+x}" ]]; then
 	## Settings (relative paths defined here will be verified and resolved later)
 	declare    dirPath_Base=".."
 	declare    dirPath_Source="${dirPath_Base}/bin"
-	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/0_bash5-marmot.bash"
+	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/bash5-marmot"
 	declare    dirAlsoCopyInstall_Subdir_Source="${dirPath_Base}/bin/include"
 	declare    dirAlsoCopyInstall_Subdir_Target="include"
 	declare    filePath_TesterExec="${dirPath_Base}/cicd/test.bash"

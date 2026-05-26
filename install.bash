@@ -56,7 +56,7 @@ set -euo pipefail
 
 ## Repo
 declare -r GITHUB_USER_AND_REPO='jim-collier/bash5-marmot'
-declare -r FRIENDLY_NAME='bash5-marmot'
+declare -r FRIENDLY_NAME='Bash5 Modular Marmot'
 
 ## Define install locations depending on whether running as root or not
 ## Feel free to change.
