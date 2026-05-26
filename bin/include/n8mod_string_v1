@@ -86,7 +86,8 @@ fBgrep() {
 	##		fBgrep resultVar  -io  'foo|bar'   inputVar
 	##		fBgrep resultVar  -iv  'foo'       inputVar
 	##		fBgrep resultVar  -o   '[0-9]+'    inputVar
-	##		fBgrep resultVar  --   '^[0-9]+$'  inputVar
+	##		fBgrep resultVar  --   '^[0-9]+$'  inputVar  ## No flags
+	##		fBgrep resultVar  ''   '^[0-9]+$'  inputVar  ## No flags
 	##	History:
 	##		- 20260523 JC: Finished version with:
 	##			- Optional RetVar (if also pass -q).
