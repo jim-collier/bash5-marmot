@@ -302,11 +302,12 @@ fLoadModule_v1(){
 		## is to just idiomatically always declare global variables/constants with `-g`.
 :;}
 
+declare __fResolvePath_v1_PreviousDir=""
 fResolvePath_v1(){
 	## Purpose: Resolves an argument to a canonical full path, while being careful to not be too broad as to resolve to something else with the same name.
-	## Searches common 'include|lib'-like sub-paths, then if arg is a single filename, the system $PATH.
+	## Searches common 'include|lib'-like sub-paths; then if arg is a single filename, seraches the system $PATH.
 	## Subshells and external tools are OK in this very early function that preceeds any modules being loaded.
-	## Validate nameref args (with no modules loaded to help)
+	## Validate nameref args (with no modules loaded yet to help)
 	nref="${1:-}"; { [[ -n "${nref}" ]] && [[ ${nref} =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && declare -p "${nref}" &>/dev/null; }  || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Invalid nameref argument '${nref}'. Are one or more arguments missing?.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Gather args
 	local -n ref_Return_ResolvedPath_t4rej=$1  ; shift || :  ## Parent variable to store fully resolved path in.
@@ -316,19 +317,39 @@ fResolvePath_v1(){
 	[[ "${nameOrPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Path or executable name not specified.\n" ; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	## Init
 	ref_Return_ResolvedPath_t4rej=""
-	## Obvious test, as-is
-	[[ -e "${nameOrPath}" ]] && { ref_Return_ResolvedPath_t4rej="$(realpath -e "${nameOrPath}")"; return 0; }
-	## Test file with common sub-paths
-	local -r mePath_t4rej="$(dirname "${BASH_SOURCE[0]}")"  ## Pathspec to this script.
-	local -a tryRelSubs=('/'  '/lib/'  '/include/'  '/includes/') ; local -a tryRelPaths=()  ## Common generic library subdirs.
-	for nextSub in "${tryRelSubs[@]}"; do tryRelPaths+=("${BASH_SOURCE[0]}.d${nextSub}${nameOrPath}") ; done  ## "[this script's full pathspec].d/[each common subdir]/[argument]".
-	for nextSub in "${tryRelSubs[@]}"; do tryRelPaths+=("${mePath_t4rej}${nextSub}${nameOrPath}")     ; done  ## "[this script's folder]/[each common subdir]/[argument]".
-	for nextPath in "${tryRelPaths[@]}"; do [[ -e "${nextPath}" ]] && { ref_Return_ResolvedPath_t4rej="$(realpath -e "${nextPath}")"; return 0; }; done  ## Return realpath if found in the first match.
+	## Variables
 	local testPath=""
-	## Try 'which', if arg is a single file.
+	## Obvious test, as-is
+	if [[ -e "${nameOrPath}" ]]; then
+		testPath="$(realpath -e "${nameOrPath}" 2>/dev/null || true)"
+		[[ -e "${testPath}" ]] && { __fResolvePath_v1_PreviousDir="$(dirname "${testPath}")"; ref_Return_ResolvedPath_t4rej="${testPath}"; return 0; }
+	fi
+	## Constants
+	local -r meMePath_t4rej="$(realpath -e "${BASH_SOURCE[0]}")"  ## Pathspec to this script.
+	local -r meMeName_t4rej="$(basename "${meMePath_t4rej}")"
+	local    meMeName_Simple_t4rej="${meMeName_t4rej//'0_'/''}"; meMeName_Simple_t4rej="${meMeName_Simple_t4rej//'.bash'/''}"; readonly meMeName_Simple_t4rej
+	local -r meDirPath_t4rej="$(dirname "${meMePath_t4rej}")"  ## Path to script container dir.
+	## Common path primitives (listed in order of likelihood and/or desired first-match if in multiple places).
+	local -a tryBaseDirs=("${meDirPath_t4rej}/"  "${meMePath_t4rej}.d/"  "${meDirPath_t4rej}/${meMeName_Simple_t4rej}/"  "${meDirPath_t4rej}/${meMeName_Simple_t4rej}.d/"  "${HOME}/synced/0-0/common/exec/util/linux/bash/"  '/opt/'  '/usr/local/'  '/usr/local/'  "${HOME}/opt/"  "${HOME}/.local/"  "${HOME}/.local/")
+	local -a tryRelSubs1=('include/'  'lib/'  'mod/'  'bin/'  'bin/lib/'  'bin/include/'  'inc/'  'includes/'  'module/'  'modules/'  '')  ## Common generic library subdirs (NOT relative to root), in order of likelihood.
+	local -a tryRelSubs2=(''  'n8/'  'x9/'  "${meMeName_t4rej}/"  "${meMeName_Simple_t4rej}/")
+	local -a tryPaths=()
+	## Build common paths to check from primitives (starting with the last path for previous match)
+	[[ -n "${__fResolvePath_v1_PreviousDir}" ]] && tryPaths+=("${__fResolvePath_v1_PreviousDir}/${nameOrPath}")  ## Add previous found dir to the top of the list
+	for tryBaseDir in "${tryBaseDirs[@]}"; do
+		for tryRelSub1 in "${tryRelSubs1[@]}"; do
+			for tryRelSub2 in "${tryRelSubs2[@]}"; do
+				testPath="${tryBaseDir}${tryRelSub1}${tryRelSub2}${nameOrPath}"; testPath="${testPath%%/}"; testPath="${testPath//'//'/'/'}"; tryPaths+=("${testPath}")
+			done
+		done
+	done
+	## Return first match.
+	#{ for nextPath in "${tryPaths[@]}"; do echo "${nextPath}"; done; } | less  ## DEBUG
+	for nextPath in "${tryPaths[@]}"; do [[ -e "${nextPath}" ]] && { __fResolvePath_v1_PreviousDir="$(dirname "${nextPath}")"; ref_Return_ResolvedPath_t4rej="${nextPath}"; return 0; }; done
+	## No match; try 'which', if arg is a single file.
 	if [[ "${nameOrPath}" != */* ]]; then
 		testPath="$(which "${nameOrPath}" 2>/dev/null || true)"
-		[[ -n "${testPath}" ]] && { ref_Return_ResolvedPath_t4rej="$(realpath -e "${testPath}")"; return 0; }  ## Return 'which'
+		[[ -n "${testPath}" ]] && { testPath="$(realpath -e "${testPath}")"; __fResolvePath_v1_PreviousDir="$(dirname "${testPath}")"; ref_Return_ResolvedPath_t4rej="${testPath}"; return 0; }  ## Return 'which'
 	fi
 	## Haven't matched yet: revert to original argument
 	testPath="${nameOrPath}"
@@ -339,8 +360,8 @@ fResolvePath_v1(){
 		testPath="$(realpath -m "${testPath}" 2>/dev/null || true)"
 		[[ -n "${testPath}" ]] || { echo -e "\nError in $(basename "${BASH_SOURCE[0]}")·${FUNCNAME[0]}(): Could not resolve even optionally nonexistent path '${nameOrPath}' [£ǝŔs].\n"; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 	fi
-	## Success
-	ref_Return_ResolvedPath_t4rej="${testPath}"
+	## If haven't returned with success or error by now, then we return what we have, which is either a real match, or valid hypothetical.
+	__fResolvePath_v1_PreviousDir="$(dirname "${testPath}")"; ref_Return_ResolvedPath_t4rej="${testPath}"
 }
 
 
