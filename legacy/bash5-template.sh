@@ -18,9 +18,9 @@
 ## shellcheck disable=2162  ## 'read without -r will mangle backslashes.'
 ## shellcheck disable=2181  ## 'Check exit code directly, not indirectly with $?.'
 
-##	Github home for template+library ......: https://github.com/jim-collier/x9bash5-template/
+##	Github home for template+library ......: https://github.com/jim-collier/bash5-marmot/
 ##	    Changelog .........................: https://github.com/jim-collier/bash-5-ultimate-guide/blob/main/CHANGELOG.md
-##	    Remaining to-do ...................: https://github.com/jim-collier/x9bash5-template/blob/main/TODO.md
+##	    Remaining to-do ...................: https://github.com/jim-collier/bash5-marmot/blob/main/TODO.md
 ##	Using Bash5 style and performance guide: https://github.com/jim-collier/bash-5-ultimate-guide/blob/main/bash-5-ultimate-guide.md
 ##	    Note: This template is not yet 100% in line with either the style nor performance parts of the guide.
 ##	        It mostly is, and where it counts. But over time will be brought fully in line, and intentional
