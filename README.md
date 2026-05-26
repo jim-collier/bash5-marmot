@@ -34,19 +34,23 @@
 -->
 
 <!-- TOC ignore:true -->
-# Bash 5 modular library
+# Bash 5 Modular Marmot
 
-This template and dynamic library for Bash 5 provides the easiest way to get up and running with a simple script that has access to a powerful library that is fast and 100% bash-native - with no subshells, pipes, or process spawning. It includes powerful (for Bash), bulletproof features and functions with minimal fuss.
+A modular Bash framework that takes full advantage of v5 features. Mostly free of expensive forks, subshells, and pipes. Has native functions that optionally fill in for external tools like grep, sed, tr, etc. - for faster performance especially in long-running loops.
 
 <!-- TOC ignore:true -->
 ## Table of contents
 
 <!-- TOC -->
 
+- [Introduction](#introduction)
 - [Why Bash 5 and not earlier for compatibility](#why-bash-5-and-not-earlier-for-compatibility)
-	- [BSD](#bsd)
-	- [macOS](#macos)
-	- [POSIX](#posix)
+	- [BSD compatibility](#bsd-compatibility)
+	- [macOS compatibility](#macos-compatibility)
+	- [POSIX compliance](#posix-compliance)
+		- [POSIX is 34 years old as of 2026](#posix-is-34-years-old-as-of-2026)
+		- [POSIX compliance is a crippling tradeoff to reluctantly adopt only if required by forces beyond your control - not an inherent virtue to strive for](#posix-compliance-is-a-crippling-tradeoff-to-reluctantly-adopt-only-if-required-by-forces-beyond-your-control---not-an-inherent-virtue-to-strive-for)
+- [Why Bash at all and not Python or a compiled language](#why-bash-at-all-and-not-python-or-a-compiled-language)
 - [Example features and functions](#example-features-and-functions)
 - [Installation](#installation)
 	- [Install to unprivileged per-user location](#install-to-unprivileged-per-user-location)
@@ -57,31 +61,87 @@ This template and dynamic library for Bash 5 provides the easiest way to get up 
 
 <!-- /TOC -->
 
+## Introduction
+
+This dynamic modular library and template for Bash 5 provides an easy way to get up and running with a relatively simple main script that has access to a powerful modular library. It's fast and almost completely bash-native - free of forking, subshells, pipes, process spawning, etc. It includes powerful (for Bash), bulletproof features and functions with minimal fuss.
+
+- *There are **some** subshells and external tools - but mostly for bootstrapping at script startup. But once underway, it's almost all bash-native, except for modules that imply or explicitly state external tool use (e.g. `exiftool`). However, for your specific implementation, obviously you can use as much forking, subshelling, piping, and external tools as necessary - after all that's usually the point of a **system shell script**, otherwise you'd be better off with a "real" language like Rust, Go, etc.*
+
 ## Why Bash 5 and not earlier for compatibility
 
-Bash 5 has been widely available by default on all modern Linux distros since 2020.
+What do we really mean by "earlier"? Bash 5 has been widely available by default on all modern Linux distros since 2020.
 
-Prior to v5, Bash 4.3 - which is mostly compatible with Bash 5 - has shipped with most Linux distros since 2015.
+Prior to v5, Bash 4.3 - which is mostly compatible with Bash 5 - has shipped with most Linux distros since 2015. That's 11 years ago as of 2026.
 
-If you are running Linux, and aren't writing simple system init scripts that require `sh` POSIX compatibility, there aren't many good arguments to *not* target Bash 5.
+If you are running Linux, and aren't writing simple system init scripts that require `sh` POSIX compatibility, there are few to no good arguments to *not* target Bash 5.
 
-### BSD
+### BSD compatibility
 
-By default, BSD doesn't ship with Bash at all. But with `ports` or `pkg`, it's trivially easy to install Bash v5.
+By default, BSD doesn't ship with Bash at all.
 
-### macOS
+However, with native BSD package managers `ports` or `pkg`, it's trivially easy to install a recent Bash v5, and takes seconds.
 
-MacOS uses Zsh as the default shell, only because Bash switched to a license after v3.2 that was incompatible with Darwin. (GPL 2 -> GPL 3.) Apple still gives Bash 3.2 security updates, but functionally it's frozen at v3.2 from 2006. That is absolutely ancient. (20 years old as of 2026.)
+BSD users don't need to change their default shell - that's what script shebang lines are for, running scripts under the correct interpreter.
 
-To target v3.2 just for macOS compatibility, is to unnecessarily hamstring a project. It's trivially easy (and legal) to upgrade Bash on macOS to v5 with `ports` or `brew`, and perfectly reasonable for a script to require it. Any serious terminal user on macOS has almost certainly already done this; and if the user can install your script, they can certainly install `brew` and Bash 5.
+> Below is an example FreeBSD command to install Bash 5, from its native package manager and default repository. You could offer to execute this in your script as a user convenience, if you've found it to be necessary - and if elevated privileges fits with your script's permission model:
 
-### POSIX
+~~~bash
+doas pkg install bash
+~~~
 
-The Linux boot process still uses the original Bourne shell for some startup init scripts. (Actually since the Bourne shell is a proprietary UNIX shell, most Linuxes either use Dash, or Bash in pseudo-"POSIX-compatibility" mode, symbolically linked to `sh`.) Such init scripts generally need to be very simple in scope, and so aren't a good candidate for this template and module library anyway - unless forked to its own process that it can't abort or block the main init thread.
+### macOS compatibility
 
-The POSIX standard for shell scripting was reverse-engineered to define whatever the Bourne shell supported at the time, in 1988. (38 years old as of 2026.) That's even older than the Windows NT CMD "language" (extended from DOS BAT), and almost as terrible.
+MacOS uses Zsh as the default shell, only because Bash switched to a license that was incompatible with Darwin, after Bash v3.2. (GPL 2 ➙ GPL 3.) Apple still gives Bash 3.2 security updates, but functionally it's frozen at v3.2 from 2006. That is absolutely ancient. (20 years old as of 2026.)
 
-POSIX doesn't even support arrays, and nearly everything requires a performance-crippling subshell - even trivial test conditions for if/then. While there may be some other obscure edge-cases, the *only* good reason to absolutely kneecap a project with "POSIX compatibility", is for inclusion in the system init process. (Or for the misguided notion that "POSIX Compatibility" ⊎ "Standards-Compliant".)
+To target v3.2 just for "macOS compatibility", is to hamstring a project unnecessarily. It's easy (and legal) to upgrade Bash on macOS to v5 with `ports` or `brew`, and is perfectly reasonable for a script to require it - like any other program or script that has required dependencies. That's been part of installing software, since there was software.
+
+With `brew`, Bash can be installed without administrator rights. And any serious terminal user on macOS has almost certainly already already done this, even if they prefer Zsh, Fish, Nushell, etc.
+
+Either way, if a user can install and execute your script, they already have the necessary "skills" required to copy and paste a single one-liner command to install Bash 5. (And any other updated GNU tools your script may rely on, and version-check.)
+
+> Below is an example one-liner to install Bash 5 on macOS without root access, that you could write into your script as a user convenience feature, if the tested current version isn't high enough:
+
+~~~bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; brew install bash
+~~~
+
+This installs Bash 5 at the user-level in a way that bash scripts run by the user from the terminal, will default to v5. (Unless hard-coded to `#!/bin/bash`.) There are other ways to install it, including at the system level, in ways that preempt Bash 3.2 in most or all user-facing contexts. Scripts and system utilities that hardcode `/bin/bash` will still invoke 3.2; SIP prevents replacing it.
+
+And again - macOS users don't need to change their default shell from Zsh, nor run Bash themselves in the terminal, in order to run Bash 5 scripts from any shell environment.
+
+Also if you want to absolutely guarantee running under bash 5 no matter how unknown your target macOS environment is, with just a few lines of guard code your script can first execute under *any* version of bash (even `#!/bin/bash`), test if it's v5, find v5 if it's not, and re-execute itself under that v5. (Or warn the user if it's not installed.)
+
+### POSIX compliance
+
+#### POSIX is 34 years old as of 2026
+
+That's a year older than the Windows NT CMD "language" (extended from DOS BAT), and almost as terrible.
+
+The POSIX standard was settled in 1992, but mostly comes from 1988 with the original UNIX Bourne shell.
+
+We're over a quarter of the way through the current century. POSIX comes from the last 10% of the *previous century*.
+
+If POSIX were a person, she could be a *grandparent* by now, legally in every country and US state along the way.
+
+#### POSIX compliance is a crippling tradeoff to reluctantly adopt only if required by forces beyond your control - not an inherent virtue to strive for
+
+POSIX has no support for some *basic* entry-level features, protections, and syntax sugar of programming and shell-scripting from this century - such arrays, local variables, built-in arithmetic comparison ergonomics (e.g. `((variable >= 1))`), C-style semantics, and many other basic features.
+
+The Linux boot process still uses POSIX compatibility for some startup init scripts, that haven't been retooled in decades because they work. Such init scripts generally need to be very simple in scope, and so aren't a good candidate for this template and module library anyway (unless forked in a way that can't abort or block the main init thread).
+
+While there may be some other obscure edge-cases, the *only* good reason to absolutely kneecap a project with "POSIX compliance", is usually if you are specifically targeting the system init process.
+
+> It might be helpful to try to get clear with yourself on whether or not you agree with this opinion:<br /><br />*The notion that "I'd like my script to be able to easily run on random macOS and/or BSD installations", doesn't constitute "forces beyond your control". POSIX compliance might be a choice you freely decide to adopt, but at least make it with the knowledge that it could significantly add to the coding burden (depending on how complex your project is), and may also be unfairly dismissing your users' capacity to copy and paste a one-liner required to install one among potentially other dependencies - which they've presumably already done at least once in some form or another, to install your script in the first place.*
+
+## Why Bash at all and not Python or a compiled language
+
+That's a good question that isn't up to this author to answer for you. But hopefully, the problem you're trying to solve is in a clear enough problem domain, that the answer is obvious. (Or the scope at least significantly narrowed-down.)
+
+I've written a deeper dive into this question - a [System shell script language comparison](https://github.com/jim-collier/bash5-marmot/blob/main/shell_script_comparison.md), in this same repo, to try to help address the pros and cons of other solutions - including Python-based solutions, and compiled languages.
+
+This document section from another project - "TOOBLIN: True Object-Oriented Bash": ['But no really...Why?'](https://github.com/jim-collier/tooblin#but-no-reallywhy) - dives into great detail on the advantages of Bash over other options, for certain problem domains. (Particularly that of system shell scripting.)
+
+There's also the insidious shibboleth that goes something like, "After 100 lines use Python not Bash." A trite bromide that has no meaningful or useful value in real-life, practical domain-specific problem-solving. The problem domains where one is more obviously appropriate than the other, are often starkly different and have nothing to do with lines of code. Furthermore, there are numerous high-quality open-source projects written in Bash that span hundreds of modular files, tens of thousands of lines of code, and dozens to hundreds of active contributors. (Specific examples are listed in the same file linked above, in the section "[Myths and realities of Bash](https://github.com/jim-collier/tooblin#myths-and-realities-of-bash)".) Python may be an obviously superior choice in many problem spaces - possibly even for some of those examples listed (where Bash seems like an odd choice in at least one case), but usually not for general system shell scripting - reasonably independent of scope, scale, or complexity.
 
 ## Example features and functions
 
@@ -89,7 +149,7 @@ POSIX doesn't even support arrays, and nearly everything requires a performance-
 
 You don't *have* to run the installer script, you can just download the files from the latest stable release and use them. In a nutshell:
 
-- Download `0_x9bash5-template.bash`. It can go anywhere.
+- Download `0_bash5-marmot.bash`. It can go anywhere.
 
 	- Specific implementation copies would ideally go somewhere in your `$PATH`, with the `+x` execute attribute set.
 
@@ -103,7 +163,7 @@ By default (which can be changed by downloading and editing the installer before
 
 | File(s)                  | Per-user install location   | System-wide install location
 | :--                      | :--                         | :--
-| 0_x9bash5-template.bash  | ~/.local/**bin**            | /usr/local/**bin**
+| 0_bash5-marmot.bash  | ~/.local/**bin**            | /usr/local/**bin**
 | include/n8mod_*          | ~/.local/**bin/lib**/n8     | /usr/local/**lib**/n8
 
 > ⚠️ *Before running one of the `curl` commands below, make sure you inspect the `install.bash` script to make sure it's safe. (It's pretty simple.)*
@@ -113,7 +173,7 @@ By default (which can be changed by downloading and editing the installer before
 As a general security "best-practice" (and for no other reason), this is usually the recommended way.
 
 ~~~bash
-curl -fsSL https://raw.githubusercontent.com/jim-collier/x9bash5-template/main/install.bash | bash
+curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install.bash | bash
 ~~~
 
 ### Install system-wide
@@ -125,12 +185,12 @@ This is a convenient long-term approach even for user-level scripts, as the temp
 Even with this approach, the command below will still update existing older versions.
 
 ~~~bash
-curl -fsSL https://raw.githubusercontent.com/jim-collier/x9bash5-template/main/install.bash | sudo bash
+curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install.bash | sudo bash
 ~~~
 
 ## Using it
 
-Look in the function `fMain()` inside `0_x9bash5-template.bash`, for examples.
+Look in the function `fMain()` inside `0_bash5-marmot.bash`, for examples.
 
 > ⚠️ *As with any scripts downloaded from the internet, before executing any new module code for the first time, be sure to review it and every dependent function it calls. Pay special attention to network, disk, and/or system call access, especially in functions that don't seem like they would need it (which should be nonexistent in this codebase), and any use of `sudo` that is not explicitly part of the function name and/or obvious and commented purpose (which should also be nonexistent).*
 
