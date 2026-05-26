@@ -46,6 +46,8 @@ To be fair, it's also difficult to let go of some outmoded ideas of what shell s
 
 ### Changed
 
+- Renamed entire project from clunky "x9bash5-template", to "bash5-marmot". Inner rationale in [Issue #3](https://github.com/jim-collier/bash5-marmot/issues/3). [20260526]
+	- Tests and CICD pipeline still works.
 - Made `fError*` -related functions simpler and more robust. [20260523]
 - Refactored to be modular dynamic libraries instead of one monolithic static template.
 	- *There's still a required template though to implement required module interfaces, it's just a much smaller script overall. And modular.*

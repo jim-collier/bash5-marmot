@@ -16,7 +16,7 @@
 ##  shellcheck disable=2317  ## 'Can't reach.' (I.e. an 'exit' is used for debugging - and makes an unusable visual mess.)
 
 ##	Purpose:
-##		- Installs x9bash5-template and include/n8mod_* modules from https://github.com/jim-collier/x9bash5-template/ to local.
+##		- Installs bash5-marmot and include/n8mod_* modules from https://github.com/jim-collier/bash5-marmot/ to local.
 ##		- Warns first if any existing local files are newer.
 ##		- Installs system-wide, or per-user, depending of whether run as UID 0 (root or sudo) or not.
 ##			- System-wide location:
@@ -55,8 +55,8 @@
 set -euo pipefail
 
 ## Repo
-declare -r GITHUB_USER_AND_REPO='jim-collier/x9bash5-template'
-declare -r FRIENDLY_NAME='x9bash5-template'
+declare -r GITHUB_USER_AND_REPO='jim-collier/bash5-marmot'
+declare -r FRIENDLY_NAME='Bash5 Modular Marmot'
 
 ## Define install locations depending on whether running as root or not
 ## Feel free to change.
@@ -103,8 +103,8 @@ echo -e "\nInstalling ${FRIENDLY_NAME} template to '${TARGET_DIR_TEMPLATE}'..."
 
 ## Test
 echo -e "\nTesting template and module installation ..."
-which x9bash5-template 2>/dev/null || { echo -e "Error: Template not found in \$PATH after installation.\n"; exit 1; }
-x9bash5-template --version || { echo -e "\nError: Template test failed.\n"; exit 1; }
+which bash5-marmot 2>/dev/null || { echo -e "Error: Template not found in \$PATH after installation.\n"; exit 1; }
+bash5-marmot --version || { echo -e "\nError: Template test failed.\n"; exit 1; }
 
 echo -e "\n[ Done. ]\n"
 

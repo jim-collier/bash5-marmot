@@ -32,7 +32,7 @@ if [[ -z "${doQuietly+x}" ]]; then
 	## Settings (relative paths defined here will be verified and resolved later)
 	declare    dirPath_Base=".."
 	declare    dirPath_Source="${dirPath_Base}/bin"
-	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/0_x9bash5-template.bash"
+	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/bash5-marmot"
 	declare    dirAlsoCopyInstall_Subdir_Source="${dirPath_Base}/bin/include"
 	declare    dirAlsoCopyInstall_Subdir_Target="include"
 	declare    filePath_TesterExec="${dirPath_Base}/cicd/test.bash"
@@ -473,7 +473,7 @@ fMain  "${@}"
 ##		- 20260420 JC: Created.
 ##		- 20260421 JC: Finished.
 ##		- 20260422-23 JC: Copied and updated for convert-base-v1b.
-##		- 20260422-23 JC: Copied and updated for x9bash5-template.
+##		- 20260422-23 JC: Copied and updated for bash5-marmot.
 ##		- 20260519-20 JC:
 ##			- Removed some template cruft.
 ##			- Better cp args.
