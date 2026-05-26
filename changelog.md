@@ -24,7 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Other work
 -->
 
-## v11.0.0-beta1 - WIP
+## v11.0.0 build 1n1bed5 - 20260526
 
 ### Notes
 
@@ -40,6 +40,7 @@ To be fair, it's also difficult to let go of some outmoded ideas of what shell s
 
 ### Added
 
+- Added `install.bash`. [20260526]
 - Added functions `fBgrep()` [_a bash-native `grep -E [-iov]`_], `fBgrepQ()` [_bash-native `grep -Eq [-iov]`_], `fBhead()` [_bash-native `head`_], `fIsNameref()`. [20260524]
 - CI/CD scripts. [20260519]
 
