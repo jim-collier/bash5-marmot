@@ -133,7 +133,7 @@ echo -e "\nTesting template and module installation via:"
 echo -e "'${TARGET_DIR_TEMPLATE}/bash5-marmot' --version\n"
 "${TARGET_DIR_TEMPLATE}/bash5-marmot" --version || { echo -e "\nError: Template test failed.\n"; exit 1; }
 
-echo -e "\n[ Done. ]\n"
+echo -e "\n[ Success. ]\n"
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
