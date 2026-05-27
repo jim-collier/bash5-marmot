@@ -29,7 +29,7 @@
 
 
 ## Bail if already loaded
-[[ "${N8MOD_ISLOADED_EXIFTOOL_V1:-}" == "1" ]] && return
+[[ "${N8MOD_ISLOADED_PHOTO_V1:-}" == "1" ]] && return
 
 ## Globals for other modules to consume. For linter support, modules may
 ## redefine these as required interfaces, but only AFTER this module is loaded.
@@ -75,7 +75,7 @@ fIsFunction fLoadModule_v1     ||  fThrowError "The function 'fLoadModule_v1' mu
 [[ -v N8MOD_ISLOADED_STRING_V1 ]] || fLoadModule_v1  n8mod_string_v1
 
 ## Flag this module as loaded.
-[[ -v N8MOD_ISLOADED_EXIFTOOL_V1 ]] || declare -gr N8MOD_ISLOADED_EXIFTOOL_V1=1
+[[ -v N8MOD_ISLOADED_PHOTO_V1 ]] || declare -gr N8MOD_ISLOADED_PHOTO_V1=1
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
