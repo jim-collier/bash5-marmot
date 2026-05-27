@@ -103,7 +103,7 @@ echo "    ${GET_URL}"
 [[ -z "${warnTemplate}" ]]                || echo "${warnTemplate}"
 [[ -z "${warnModules}" ]]                 || echo "${warnModules}"
 echo
-read -r -p "Continue? (y|n): " userInput
+read -r -p "Continue? (y|n): " userInput < /dev/tty
 [[ "${userInput,,}" == "y" ]] || { echo -e "[ User aborted. ]\n"; exit 1; }
 
 ## Download and install

@@ -198,13 +198,13 @@ fIntroPromptToContinue(){
 	local -r extraInfoString="${1:-}"
 	{ fEcho_Clean; fShowCopyright; fShowAbout_Local; fEcho_Clean; }
 	[[ -n "${extraInfoString}" ]] && { fEcho_Clean; fEcho_Clean "${extraInfoString}"; }
-	fPromptYN "Continue? (y|n): " || { fEcho "User aborted."; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
+	fPromptYN "Continue? (y|n): " < /dev/tty || { fEcho "User aborted."; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 }
 fPromptYN(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
 	[[ -z "${promptStr}" ]] && promptStr="Continue? (y|n): "
-	read -r -p "${promptStr}" userAnswer
+	read -r -p "${promptStr}" userAnswer < /dev/tty
 	fEcho_ResetBlankCounter
 	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}
 }
@@ -212,7 +212,7 @@ fPressAnyKeyToContinue(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
 	[[ -z "${promptStr}" ]] && promptStr="Press any key to continue ..."
-	read -n 1 -s -p "${promptStr}" userAnswer
+	read -n 1 -s -p "${promptStr}" userAnswer < /dev/tty
 	fEcho_Clean_Force
 }
 
