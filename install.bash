@@ -129,9 +129,9 @@ echo -e "\nInstalled module files:"
 ls -lA --color=always "${TARGET_DIR_MODULES}"/*
 
 ## Test
-echo -e "\nTesting template and module installation via 'bash5-marmot --version' ..."
-#which bash5-marmot 2>/dev/null || { echo -e "Error: Template not found in \$PATH after installation.\n"; exit 1; }  ## Template doesn't have to be in $PATH.
-bash5-marmot --version || { echo -e "\nError: Template test failed.\n"; exit 1; }
+echo -e "\nTesting template and module installation via:"
+echo -e "'${TARGET_DIR_TEMPLATE}/bash5-marmot' --version\n"
+"${TARGET_DIR_TEMPLATE}/bash5-marmot" --version || { echo -e "\nError: Template test failed.\n"; exit 1; }
 
 echo -e "\n[ Done. ]\n"
 
