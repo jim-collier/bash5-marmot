@@ -36,11 +36,11 @@
 <!-- TOC ignore:true -->
 # Bash5 Modular Marmot
 
-<table>
-	<tr>
+<table style="border: none; border-collapse: collapse;">
+	<tr style="border: none;">
 		<td style="border: none;"><img src="https://github.com/jim-collier/bash5-marmot/blob/main/assets/mascot3.png?raw=true" alt="Modular Marmot" width="320"/></td>
 		<td style="border: none;">Welcome to Bash5 Modular Marmot. It's a modular Bash framework that takes full advantage of v5 features. Mostly free of expensive forks, subshells, and pipes. Has native functions that optionally fill in for external tools like grep, sed, tr, etc. - for faster performance especially in long-running loops.</td>
-	</tr>
+	</tr style="border: none;">
 </table>
 
 <!-- TOC ignore:true -->
