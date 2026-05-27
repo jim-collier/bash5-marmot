@@ -8,7 +8,7 @@
 
 [![!#/bin/bash](https://img.shields.io/badge/-%23!%2Fbin%2Fbash-1f425f.svg?logo=gnu-bash)](https://www.gnu.org/software/bash/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Lifecycle](https://img.shields.io/badge/Lifecycle-RC-blue)
+![Lifecycle: Stable](https://img.shields.io/badge/Lifecycle-Stable-brightgreen)
 ![Support](https://img.shields.io/badge/Support-Maintained-brightgreen)
 ![Coverage](https://img.shields.io/badge/Coverage-75%25-yellow)
 ![Status: Passing](https://img.shields.io/badge/Status-Passing-brightgreen)
@@ -50,11 +50,11 @@
 
 - [Features](#features)
 - [Why Bash 5 and not earlier for compatibility](#why-bash-5-and-not-earlier-for-compatibility)
-	- [BSD compatibility](#bsd-compatibility)
-	- [macOS compatibility](#macos-compatibility)
-	- [POSIX compliance](#posix-compliance)
-		- [POSIX is 34 years old as of 2026](#posix-is-34-years-old-as-of-2026)
-		- [POSIX compliance is a crippling tradeoff to accept only if required by external forces beyond your control - not an inherent virtue to strive for](#posix-compliance-is-a-crippling-tradeoff-to-accept-only-if-required-by-external-forces-beyond-your-control---not-an-inherent-virtue-to-strive-for)
+	- [BSD](#bsd)
+	- [macOS](#macos)
+	- [POSIX](#posix)
+		- [POSIX was 34 years old at the start of this project](#posix-was-34-years-old-at-the-start-of-this-project)
+		- [POSIX compliance is a crippling tradeoff and often artificial constraint](#posix-compliance-is-a-crippling-tradeoff-and-often-artificial-constraint)
 - [Why Bash at all and not Python or a compiled language](#why-bash-at-all-and-not-python-or-a-compiled-language)
 - [Installation](#installation)
 	- [Install to unprivileged per-user location](#install-to-unprivileged-per-user-location)
@@ -64,10 +64,6 @@
 - [Copyright and license](#copyright-and-license)
 
 <!-- /TOC -->
-
-<!--
-## Introduction
--->
 
 ## Features
 
@@ -85,7 +81,7 @@ Prior to v5, Bash 4.3 - which is mostly compatible with Bash 5 - has shipped wit
 
 If you are running Linux, and aren't writing simple system init scripts that require `sh` POSIX compatibility, there are few to no good arguments to *not* target Bash 5.
 
-### BSD compatibility
+### BSD
 
 By default, BSD doesn't ship with Bash at all. If you want your Bash script to be able to run on all BSDs without requiring the user install even a single dependency, that is going to usually be a very, *very* tall order for a script author - save for the most trivial of scripts. Because:
 
@@ -109,7 +105,7 @@ BSD users don't need to change their default shell - that's what script shebang 
 doas pkg install bash
 ~~~
 
-### macOS compatibility
+### macOS
 
 MacOS uses Zsh as the default shell, only because Bash switched to a license that was incompatible with Darwin, after Bash v3.2. (GPL 2 ➙ GPL 3.) Apple still gives Bash 3.2 security updates, but functionally it's frozen at v3.2 from 2006. That is absolutely ancient. (20 years old as of 2026.)
 
@@ -135,9 +131,9 @@ Also if you want to absolutely guarantee running under bash 5 no matter how unkn
 
 Which brings us to...
 
-### POSIX compliance
+### POSIX
 
-#### POSIX is 34 years old as of 2026
+#### POSIX was 34 years old at the start of this project
 
 That's a year older than the Windows NT CMD "language" (extended from DOS BAT), and almost as terrible.
 
@@ -147,7 +143,7 @@ We're over a quarter of the way through the current century. POSIX comes from th
 
 If POSIX were a person, she could be a *grandparent* by now, legally in every country and US state along the way.
 
-#### POSIX compliance is a crippling tradeoff to accept only if required by external forces beyond your control - not an inherent virtue to strive for
+#### POSIX compliance is a crippling tradeoff and often artificial constraint
 
 POSIX has no support for some *basic* entry-level features, protections, and syntax sugar of programming and shell-scripting from this century - such arrays, local variables, built-in arithmetic comparison ergonomics (e.g. `((variable >= 1))`), C-style semantics, and many other basic features.
 
