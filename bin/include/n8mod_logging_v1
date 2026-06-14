@@ -29,29 +29,27 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_LOGGING_V1:-}" == "1" ]] && return
 
-## The following are defined here only for linter support in this file.
-## They are required to be defined first by the calling script, so should never get inside the if/fi.
-#if [[ ! -v THIS_FILEPATH ]]; then
-#	declare    THIS_FILEPATH  || :
-#	declare    THIS_FILENAME  || :
-#	declare    THIS_DIRPATH   || :
-#fi
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5jqf ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5jqf="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5jqf ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5jqf="$(basename "${THIS_LIB_FILE_PATH_t5jqf}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5jqf  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5jqf="$(dirname "${THIS_LIB_FILE_PATH_t5jqf}")" #.....: Replace with native bash function when ready.
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -v THIS_LIB_FILE_PATH_t5jqf ]]; then
-	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5jqf="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5jqf="$(basename "${THIS_LIB_FILE_PATH_t5jqf}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5jqf="$(dirname "${THIS_LIB_FILE_PATH_t5jqf}")" #.....: Replace with native bash function when ready.
-fi
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Functions
 
-[[ -z "${_removeOldLogs_default_maxLogfiles+x}" ]] && declare -gr  defaultLogMiddleSubdirs="var/log"
-declare -g  _vLog_Dir=""  _vLog_Filename=""  _vLog_Filespec=""  _vLog_WiledcardSpec=""  _vLog_Owner=""
-declare -gi _vLog_DidInitVars=0  _vLog_DidInitFsObjs=0
+## Globals for functions below.
+[[ -v _vLog_DefaultLogMiddleSubdirs              ]]  ||  declare -gr  _vLog_DefaultLogMiddleSubdirs="var/log"
+[[ -v _vLog_RemoveOldLogs_maxLogfiles            ]]  ||  declare -gri _vLog_RemoveOldLogs_maxLogfiles=10
+[[ -v _vLog_RemoveOldLogs_delNullFilesGeNMinsOld ]]  ||  declare -g   _vLog_RemoveOldLogs_delNullFilesGeNMinsOld=60  ## Default is to delete null files that are at least this many minutes old. (This is to prevent the common problem of log rotation creating a new empty file, but then the script crashing before it can write anything to it, leaving a null file that would never get cleaned up because it's never old enough.)
+[[ -v _vLog_Dir                                  ]]  ||  declare -g   _vLog_Dir=""
+[[ -v _vLog_Filename                             ]]  ||  declare -g   _vLog_Filename=""
+[[ -v _vLog_Filespec                             ]]  ||  declare -g   _vLog_Filespec=""
+[[ -v _vLog_WiledcardSpec                        ]]  ||  declare -g   _vLog_WiledcardSpec=""
+[[ -v _vLog_Owner                                ]]  ||  declare -g   _vLog_Owner=""
+[[ -v _vLog_DidInitVars                          ]]  ||  declare -gi  _vLog_DidInitVars=0
+[[ -v _vLog_DidInitFsObjs                        ]]  ||  declare -gi  _vLog_DidInitFsObjs=0
+
 fLog_GetFilespec(){
 	##	Purpose: Initializes everything and gives you the log filespec, without actually creating anything yet.
 	##	Args:
@@ -78,7 +76,7 @@ fLog_Init(){
 		mkdir -p "${_vLog_Dir}"
 		[[ "root" == "${USER,,}" ]] && chown ${_vLog_Owner}:${_vLog_Owner} "${_vLog_Dir}"
 	fi
-	[[ -n "${_vLog_WiledcardSpec}" ]] && fRemoveOldLogs  "${_vLog_Dir}"  "${_vLog_WiledcardSpec}"  $((_removeOldLogs_default_maxLogfiles - 1))  $_removeOldLogs_default_delNullFilesGeNMinsOld
+	[[ -n "${_vLog_WiledcardSpec}" ]] && fRemoveOldFiles  "${_vLog_Dir}"  "${_vLog_WiledcardSpec}"  $((_vLog_RemoveOldLogs_maxLogfiles - 1))  $_vLog_RemoveOldLogs_delNullFilesGeNMinsOld
 	touch "${_vLog_Filespec}"
 	_vLog_DidInitFsObjs=1
 }
@@ -120,7 +118,7 @@ __pLog_InitVars(){
 	_vLog_Owner="${userName}"
 	if [[ -z "${logDir}"  ]]; then
 		local userHome=""; fGetOgUserHome userHome "${userName}"; local -r userHome="${userHome}"
-		logDir="${userHome}/${defaultLogMiddleSubdirs}/${meName}"
+		logDir="${userHome}/${_vLog_DefaultLogMiddleSubdirs}/${meName}"
 	fi
 	_vLog_Dir="${logDir}"
 	local _vLog_WiledcardSpec=""
@@ -133,12 +131,11 @@ __pLog_InitVars(){
 	_vLog_DidInitVars=1
 }
 
-## Remove old logs
-if [[ -z "${_removeOldLogs_default_maxLogfiles+x}"            ]]; then
-	declare -gri _removeOldLogs_default_maxLogfiles=10
-	declare -gri _removeOldLogs_default_delNullFilesGeNMinsOld=1
-fi
-fRemoveOldLogs(){
+
+## Remove old files (e.g. logs)
+[[ -v __fRemoveOldFiles_default_maxLogfiles            ]]  ||  declare -gri __fRemoveOldFiles_default_maxLogfiles=10
+[[ -v __fRemoveOldFiles_default_delNullFilesGeNMinsOld ]]  ||  declare -gri __fRemoveOldFiles_default_delNullFilesGeNMinsOld=1
+fRemoveOldFiles(){
 	local -r basePath="${1:-}"                       ## Arg <REQUIRED>: Folder where logfiles go.
 	local -r wildcardFilespec="${2:-}"               ## Arg <REQUIRED>: A filename with at least one required embedded POSIX wildcard in the string (NOT at the shell expansion level). This is to old logs can be deleted.
 	local    keepNewestNlogs="${3:-}"                ## Arg [optional]: Number of newest log files to keep. Defaults to $default_keepNewestNlogs
@@ -164,6 +161,7 @@ fRemoveOldLogs(){
 	find "${basePath}" -maxdepth 1 -type f -name "${wildcardFilespec}" -printf '%T@ %p\0' | sort -z -n | head -z -n "-${keepNewestNlogs}" | cut -z -d' ' -f2- | xargs -0 -r "${useRemoveProgram}"
 	((removeNullsThisMinutesOrOlder > 0)) && find "${basePath}" -maxdepth 1 -type f -name "${wildcardFilespec}" -empty -mmin +${removeNullsThisMinutesOrOlder} -delete
 :;}
+
 
 
 
@@ -193,3 +191,4 @@ declare -i isSourced_t5jqf=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
+##		- 20260614 JC: Cleaned up constant definitions and structure.

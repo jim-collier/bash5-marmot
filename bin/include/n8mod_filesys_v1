@@ -29,6 +29,11 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_FILESYS_V1:-}" == "1" ]] && return
 
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5jeb ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5jeb="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5jeb ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5jeb="$(basename "${THIS_LIB_FILE_PATH_t5jeb}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5jeb  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5jeb="$(dirname "${THIS_LIB_FILE_PATH_t5jeb}")" #.....: Replace with native bash function when ready.
+
 ## The following are defined here only for linter support in this file.
 ## They are required to be defined first by the calling script, so should never get inside the if/fi.
 #if [[ ! -v THIS_FILEPATH ]]; then
@@ -37,17 +42,8 @@
 #	declare    THIS_DIRPATH   || :
 #fi
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -x THIS_LIB_FILE_PATH_t5jeb ]]; then
-	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5jeb="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5jeb="$(basename "${THIS_LIB_FILE_PATH_t5jeb}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5jeb="$(dirname "${THIS_LIB_FILE_PATH_t5jeb}")" #.....: Replace with native bash function when ready.
-fi
 
-
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Functions
 
 fDoesPathExist(){
@@ -104,6 +100,7 @@ fSafer_rm(){
 
 
 
+
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Script initialization
 
@@ -130,3 +127,4 @@ declare -i isSourced_t5jeb=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
+##		- 20260614 JC: Cleaned up constant definitions and structure.

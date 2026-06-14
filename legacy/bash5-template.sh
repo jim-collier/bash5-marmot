@@ -458,7 +458,7 @@ EOF_s7asw
 ##				fLog_GetFilespec() ................: If you want to know what the log filespec will be, before it's created.
 ##				fLog_Init() .......................: If you want to explicitly init the logfile, but is not necessary.
 ##				fLog_Cleanup() ....................: Not strictly necessary if you don't run as root, as it only updates file permissions to OG user.
-##	Dependencies .....: fRemoveOldLogs(), fThrowError(), fGetOgUserName(), fGetOgUserHome()
+##	Dependencies .....: fRemoveOldFiles(), fThrowError(), fGetOgUserName(), fGetOgUserHome()
 ##	Dependents .......: Optional in stock template's fInit().
 ##	Unit tests passed :
 	[[ -z "${_removeOldLogs_default_maxLogfiles+x}" ]] && declare -r  defaultLogMiddleSubdirs="var/log"
@@ -486,7 +486,7 @@ EOF_s7asw
 			mkdir -p "${_vLog_Dir}"
 			[[ "root" == "${USER,,}" ]] && chown ${_vLog_Owner}:${_vLog_Owner} "${_vLog_Dir}"
 		fi
-		[[ -n "${_vLog_WiledcardSpec}" ]] && fRemoveOldLogs  "${_vLog_Dir}"  "${_vLog_WiledcardSpec}"  $((_removeOldLogs_default_maxLogfiles - 1))  $_removeOldLogs_default_delNullFilesGeNMinsOld
+		[[ -n "${_vLog_WiledcardSpec}" ]] && fRemoveOldFiles  "${_vLog_Dir}"  "${_vLog_WiledcardSpec}"  $((_removeOldLogs_default_maxLogfiles - 1))  $_removeOldLogs_default_delNullFilesGeNMinsOld
 		touch "${_vLog_Filespec}"
 		_vLog_DidInitFsObjs=1 ;:;}
 	fLog_Line(){
@@ -551,13 +551,13 @@ fPromptToContinue(){
 ##	Statefulness .....: Stateless. Includes global default settings which can be overridden via function arguments.
 ##	Minified? ........: Yes, readably
 ##	Notes ............: Designed for, but can be used independently of, fLog_*().
-##	Example[s] .......: fRemoveOldLogs  "${HOME}/var/log/$(basename "${0}")"  "$(basename "${0}")_*.log"  10  1
+##	Example[s] .......: fRemoveOldFiles  "${HOME}/var/log/$(basename "${0}")"  "$(basename "${0}")_*.log"  10  1
 ##	Dependents .......: fLog_Init()
 ##	Dependencies .....: fThrowError()
 ##	Unit tests passed :
 [[ -z "${_removeOldLogs_default_maxLogfiles+x}"            ]] && declare -ri _removeOldLogs_default_maxLogfiles=10
 [[ -z "${_removeOldLogs_default_delNullFilesGeNMinsOld+x}" ]] && declare -ri _removeOldLogs_default_delNullFilesGeNMinsOld=1
-fRemoveOldLogs(){
+fRemoveOldFiles(){
 	local -r basePath="${1:-}"                       ## Arg <REQUIRED>: Folder where logfiles go.
 	local -r wildcardFilespec="${2:-}"               ## Arg <REQUIRED>: A filename with at least one required embedded POSIX wildcard in the string (NOT at the shell expansion level). This is to old logs can be deleted.
 	local    keepNewestNlogs="${3:-}"                ## Arg [optional]: Number of newest log files to keep. Defaults to $default_keepNewestNlogs

@@ -29,6 +29,12 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_UNITTEST_V1:-}" == "1" ]] && return
 
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5mnv ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5mnv="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5mnv ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5mnv="$(basename "${THIS_LIB_FILE_PATH_t5mnv}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5mnv  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5mnv="$(dirname "${THIS_LIB_FILE_PATH_t5mnv}")" #.....: Replace with native bash function when ready.
+[[ -v __vAllTestIDs            ]]  ||  declare -g   __vAllTestIDs=""
+
 ## The following are defined here only for linter support in this file.
 ## They are required to be defined first by the calling script, so should never get inside the if/fi.
 #if [[ ! -v THIS_FILEPATH ]]; then
@@ -37,17 +43,9 @@
 #	declare    THIS_DIRPATH   || :
 #fi
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -v THIS_LIB_FILE_PATH_t5mnv ]]; then
-	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5mnv="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5mnv="$(basename "${THIS_LIB_FILE_PATH_t5mnv}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5mnv="$(dirname "${THIS_LIB_FILE_PATH_t5mnv}")" #.....: Replace with native bash function when ready.
-	## Variables
-	declare -g __vAllTestIDs=""
-fi
 
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Functions
 
 ##	Purpose ..........: Mimimal collection of typical unit-testing functions.
 ##	Side-effects .....: StdOut. StdErr for errors. Adds new variable[s] to script environment.

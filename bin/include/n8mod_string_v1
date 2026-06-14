@@ -29,6 +29,11 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_STRING_V1:-}" == "1" ]] && return
 
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5jec ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5jec="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5jec ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5jec="$(basename "${THIS_LIB_FILE_PATH_t5jec}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5jec  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5jec="$(dirname "${THIS_LIB_FILE_PATH_t5jec}")" #.....: Replace with native bash function when ready.
+
 ## Globals for other modules to consume. For linter support, modules may
 ## redefine these as required interfaces, but only AFTER this module is loaded.
 
@@ -40,16 +45,9 @@
 #	declare    THIS_DIRPATH   || :
 #fi
 
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -v THIS_LIB_FILE_PATH_t5jec ]]; then
-	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5jec="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5jec="$(basename "${THIS_LIB_FILE_PATH_t5jec}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5jec="$(dirname "${THIS_LIB_FILE_PATH_t5jec}")" #.....: Replace with native bash function when ready.
-fi
 
-####•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-#### Functions
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Functions
 
 fBgrep() {
 	##	Purpose:
@@ -261,7 +259,6 @@ fBhead() {
 
 }
 
-
 fGetStrMatchPos(){
 	##	Purpose: Returns 1-based index of position of first match. 0= no match.
 	##	Notes: Uses namerefs in so that any of the strings can be huge, with less performance hit.
@@ -317,15 +314,13 @@ fSplitStr (){
 	fi
 :;}
 
+##
 ##	Quoted params
 ##		Purpose: Build a string from input parameters, with thing that need quoting, quoted, and thing that don't, not.
 ##		Example: fBuildQuotedParams myReturnVar Now_is "the time" for    '{12}'   'it\'s'  "thing > 1" goto 10."
 ##			"${myReturnVar}" == 'Now_is "the time" for "{12}" "it's" "thing > 1" goto 10."'
-if [[ ! -v BUILD_QUOTED_PARAMS_CHECK_PATTERN ]]; then
-	## Global constants
-	declare -gr  BUILD_QUOTED_PARAMS_CHECK_PATTERN=$'[][[:space:]|&;()<>`*?$!~{}\'\"#=,%@\\]'  ## If an arg has any of these in it, it needs quoting.
-	declare -gri BUILD_QUOTED_PARAMS_MAX_BLANK=10
-fi
+[[ -v BUILD_QUOTED_PARAMS_CHECK_PATTERN ]]  ||  declare -gr  BUILD_QUOTED_PARAMS_CHECK_PATTERN=$'[][[:space:]|&;()<>`*?$!~{}\'\"#=,%@\\]'  ## If an arg has any of these in it, it needs quoting.
+[[ -v BUILD_QUOTED_PARAMS_MAX_BLANK     ]]  ||  declare -gri BUILD_QUOTED_PARAMS_MAX_BLANK=10
 fBuildQuotedParams(){
 	## Validate nameref args
 	fIsNameref "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
@@ -351,6 +346,8 @@ fBuildQuotedParams(){
 	## Return the string
 	ptr_Output_1mtkp9p="${retVal}"
 }
+
+
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••

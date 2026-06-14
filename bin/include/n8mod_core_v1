@@ -29,22 +29,19 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_CORE_V1:-}" == "1" ]] && return
 
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -v THIS_LIB_FILE_PATH_t5hpa ]]; then
-	## Constants
-	declare -gr  THIS_LIB_FILE_PATH_t5hpa="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr  THIS_LIB_FILE_NAME_t5hpa="$(basename "${THIS_LIB_FILE_PATH_t5hpa}")" #...: Replace with native bash function when ready.
-	declare -gr  THIS_LIB_DIR_PATH_t5hpa="$(dirname "${THIS_LIB_FILE_PATH_t5hpa}")" #.....: Replace with native bash function when ready.
-fi
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5hpa ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5hpa="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5hpa ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5hpa="$(basename "${THIS_LIB_FILE_PATH_t5hpa}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5hpa  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5hpa="$(dirname "${THIS_LIB_FILE_PATH_t5hpa}")" #.....: Replace with native bash function when ready.
 
 ## Globals for other modules to consume. For linter support, modules may
 ## redefine these as required interfaces, but only AFTER this module is loaded.
-[[ -v ERRNUM_MSG_ALREADY_SHOWN     ]] || declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
-[[ -v FBGREP_REGEX_SYMBOL_DECIMAL  ]] || declare -gr  FBGREP_REGEX_SYMBOL_DECIMAL='\.'
-[[ -v FBGREP_REGEX_INTEGER         ]] || declare -gr  FBGREP_REGEX_INTEGER='^-?[0-9]+$'
-[[ -v FBGREP_REGEX_NUMBER          ]] || declare -gr  FBGREP_REGEX_NUMBER="^-?([0-9]+${FBGREP_REGEX_SYMBOL_DECIMAL}?[0-9]*|${FBGREP_REGEX_SYMBOL_DECIMAL}[0-9]+)$"
-[[ -v SERIAL_DATETIME              ]] || declare -gr  SERIAL_DATETIME="$(date "+%Y%m%d-%H%M%S")"
-[[ -v RELAUNCH_SENTINELVAL         ]] || declare -gr  RELAUNCH_SENTINELVAL="${THIS_LIB_FILE_NAME_t5hpa}_relaunch_4KQDYluNbzLQHwMwsWxgdk"  ## This funky string isn't for 'security' or uniqueness. It just a sentinel value that's unlikely as a user argument.
+[[ -v ERRNUM_MSG_ALREADY_SHOWN    ]] || declare -gri ERRNUM_MSG_ALREADY_SHOWN=3
+[[ -v FBGREP_REGEX_SYMBOL_DECIMAL ]] || declare -gr  FBGREP_REGEX_SYMBOL_DECIMAL='\.'
+[[ -v FBGREP_REGEX_INTEGER        ]] || declare -gr  FBGREP_REGEX_INTEGER='^-?[0-9]+$'
+[[ -v FBGREP_REGEX_NUMBER         ]] || declare -gr  FBGREP_REGEX_NUMBER="^-?([0-9]+${FBGREP_REGEX_SYMBOL_DECIMAL}?[0-9]*|${FBGREP_REGEX_SYMBOL_DECIMAL}[0-9]+)$"
+[[ -v SERIAL_DATETIME             ]] || declare -gr  SERIAL_DATETIME="$(date "+%Y%m%d-%H%M%S")"
+[[ -v RELAUNCH_SENTINELVAL        ]] || declare -gr  RELAUNCH_SENTINELVAL="${THIS_LIB_FILE_NAME_t5hpa}_relaunch_4KQDYluNbzLQHwMwsWxgdk"  ## This funky string isn't for 'security' or uniqueness. It just a sentinel value that's unlikely as a user argument.
 
 ## Fractional seconds to sleep before outputting to stderr.
 ## This is a hacky and unreliable way to insure that buffered stdout has time
@@ -102,7 +99,6 @@ fInit(){
 }
 
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ##
 ## Core functions
 
@@ -121,8 +117,10 @@ fIsFunction(){
 	return 0  ## Is a function
 }
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+##
 ## Username and home
+
 fGetOgUserName(){
 	## Validate nameref args
 	fIsNameref  "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
@@ -141,6 +139,7 @@ fGetOgUserName(){
 	retVal="$(whoami  2>/dev/null || true)"  ;   [[ -n "${retVal}" ]]                                     && { ptr_Output_s74rg="${retVal}"; return 0; }
 	[[ -z "${retVal}" ]] && fThrowError  "Could not figure out username. This could be a bug [¢Яēᛏ]."  "${FUNCNAME[0]}"
 }
+
 fGetOgUserHome(){
 	## Validate nameref args
 	fIsNameref  "${1:-}" || return ${ERRNUM_MSG_ALREADY_SHOWN}
@@ -161,8 +160,10 @@ fGetOgUserHome(){
 	[[ ! -d "${retVal}" ]] && fThrowError  "Calculated home directory doesn't exist: '${retVal}'. This could be a bug [£⍤ㅍᛦ]."
 }
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+##
 ## Flow control
+
 fChainToFunction(){
 	[[ -z "${UID}" ]] && { fThrowError "Can't determine user ID via \$UID."; return 2; }
 	## Args
@@ -186,7 +187,7 @@ fChainToFunction(){
 	fi
 }
 
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
 ## Error-handling (minified but not obfuscated)
 ## The default `fError_DefineBehavior_*` is `return`, not `exit`. Call `fError_DefineBehavior_Exit` to change that.
 ## Note that SIGKILL (e.g. from kill -9) isn't possible to trap.
@@ -322,7 +323,7 @@ trap '_fSingleExitPoint SIGQUIT  ${LINENO} $?' SIGQUIT   ## CTRL+\, dumps core i
 fError_DefineTrap_Fatal
 fError_DefineBehavior_Return
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
 ## Echo-related (minified but not obfuscated)
 ## Purpose:
 ##   - Lets callers not worry about the often careful planning and/or extra
@@ -372,8 +373,9 @@ fEcho_Force()                 { _wasLastEchoBlank=0; fEcho "${1:-}"; }
 fEcho_Clean_Force()           { _wasLastEchoBlank=0; local -r toEcho="${1:-}"; fEcho_Clean_byref toEcho; }
 
 
+
+
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-##
 ## Script initialization
 
 ## Check if sourced
@@ -405,3 +407,4 @@ declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##				- Removed passing `$_`, which is unreliable.
 ##				- Smarter console output from fThrowError(), and _fSingleExitPoint().
 ##		- 20260522 JC: Error-handling debugging (the hardest kind of debugging!).
+##		- 20260614 JC: Cleaned up constant definitions and structure.
