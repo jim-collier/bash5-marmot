@@ -19,7 +19,7 @@
 ## shellcheck disable=2053  ## 'Quote the right-hand side of = in [[ ]] to prevent glob matching.' Disable for Yoda Notation.
 
 ##	Purpose:
-##		- A collection of easy wrapper functions for EXIFTool, that presents just the best of the core functionality.
+##		- A collection of photo & video -related functions, including wrappers for EXIFTool, that presents just the best of the core functionality.
 ##	Module history: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
 
 ##	Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
@@ -30,6 +30,11 @@
 
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_PHOTO_V1:-}" == "1" ]] && return
+
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5jec ]] || declare -gr  THIS_LIB_FILE_PATH_t5jec="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5jec ]] || declare -gr  THIS_LIB_FILE_NAME_t5jec="$(basename "${THIS_LIB_FILE_PATH_t5jec}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5jec  ]] || declare -gr  THIS_LIB_DIR_PATH_t5jec="$(dirname "${THIS_LIB_FILE_PATH_t5jec}")" #.....: Replace with native bash function when ready.
 
 ## Globals for other modules to consume. For linter support, modules may
 ## redefine these as required interfaces, but only AFTER this module is loaded.
@@ -42,16 +47,10 @@
 #	declare    THIS_DIRPATH   || :
 #fi
 
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -v THIS_LIB_FILE_PATH_t5jec ]]; then
-	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5jec="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5jec="$(basename "${THIS_LIB_FILE_PATH_t5jec}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5jec="$(dirname "${THIS_LIB_FILE_PATH_t5jec}")" #.....: Replace with native bash function when ready.
-fi
 
-####•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-#### Functions
+##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Functions
+
 
 
 
@@ -81,3 +80,4 @@ fIsFunction fLoadModule_v1     ||  fThrowError "The function 'fLoadModule_v1' mu
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260524 JC: Created.
+##		- 20260614 JC: Cleaned up constant definitions and structure.

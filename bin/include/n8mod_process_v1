@@ -29,6 +29,11 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_PROCESS_V1:-}" == "1" ]] && return
 
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5jhk ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5jhk="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5jhk ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5jhk="$(basename "${THIS_LIB_FILE_PATH_t5jhk}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5jhk  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5jhk="$(dirname "${THIS_LIB_FILE_PATH_t5jhk}")" #.....: Replace with native bash function when ready.
+
 ## The following are defined here only for linter support in this file.
 ## They are required to be defined first by the calling script, so should never get inside the if/fi.
 #if [[ ! -v THIS_FILEPATH ]]; then
@@ -36,15 +41,6 @@
 #	declare    THIS_FILENAME  || :
 #	declare    THIS_DIRPATH   || :
 #fi
-
-#•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## Globals for this module. (The existence check is redundant but that's OK.)
-if [[ ! -v THIS_LIB_FILE_PATH_t5jhk ]]; then
-	## Constants
-	declare -gr THIS_LIB_FILE_PATH_t5jhk="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr THIS_LIB_FILE_NAME_t5jhk="$(basename "${THIS_LIB_FILE_PATH_t5jhk}")" #...: Replace with native bash function when ready.
-	declare -gr THIS_LIB_DIR_PATH_t5jhk="$(dirname "${THIS_LIB_FILE_PATH_t5jhk}")" #.....: Replace with native bash function when ready.
-fi
 
 
 #•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
@@ -67,6 +63,7 @@ fRunGuiAsSudo(){
 	echo "Executing: ( (eval \"sudo  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus XDG_RUNTIME_DIR=/run/user/0  ${quotedParams}  &>/dev/null\") & disown ) &>/dev/null"  ## Debug output to console. Users won't see since this is run by GUI.
 	( (eval "sudo  DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus XDG_RUNTIME_DIR=/run/user/0  ${quotedParams}  &>/dev/null") & disown ) &>/dev/null
 }
+
 
 
 
@@ -96,3 +93,4 @@ fIsFunction fLoadModule_v1      ||  fThrowError "The function 'fLoadModule_v1' m
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
+##		- 20260614 JC: Cleaned up constant definitions and structure.

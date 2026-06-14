@@ -29,34 +29,32 @@
 ## Bail if already loaded
 [[ "${N8MOD_ISLOADED_INTERACT_V1:-}" == "1" ]] && return
 
+## Globals for this module. (The existence check[s] is|are redundant but that's OK.)
+[[ -v THIS_LIB_FILE_PATH_t5j9j ]]  ||  declare -gr  THIS_LIB_FILE_PATH_t5j9j="$(realpath -e "${BASH_SOURCE[0]}")"
+[[ -v THIS_LIB_FILE_NAME_t5j9j ]]  ||  declare -gr  THIS_LIB_FILE_NAME_t5j9j="$(basename "${THIS_LIB_FILE_PATH_t5j9j}")" #...: Replace with native bash function when ready.
+[[ -v THIS_LIB_DIR_PATH_t5j9j  ]]  ||  declare -gr  THIS_LIB_DIR_PATH_t5j9j="$(dirname "${THIS_LIB_FILE_PATH_t5j9j}")" #.....: Replace with native bash function when ready.
+[[ -v wasShown_Version         ]]  ||  declare -gi  wasShown_Version=0
+[[ -v wasShown_Copyright       ]]  ||  declare -gi  wasShown_Copyright=0
+[[ -v wasShown_About           ]]  ||  declare -gi  wasShown_About=0
+[[ -v wasShown_Syntax          ]]  ||  declare -gi  wasShown_Syntax=0
+
 ## The following are defined here only for linter support in this file.
 ## They are required to be defined first by the calling script, so should never get inside the if/fi.
-if [[ ! -v doQuietly ]]; then
-	declare -i doQuietly
-	declare -i doPromptToContinue
-	declare    THIS_VERSION                   || :
-	declare    THIS_BUILD                     || :
-	declare    THIS_COPYRIGHT_YEARS           || :
-	declare    THIS_AUTHOR                    || :
-	declare    LICENSE_SPDX                   || :
-fi
-
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-## For this module
-if [[ ! -v THIS_LIB_FILE_PATH_t5j9j ]]; then
-	## Constants
-	declare -gr  THIS_LIB_FILE_PATH_t5j9j="$(realpath -e "${BASH_SOURCE[0]}")"
-	declare -gr  THIS_LIB_FILE_NAME_t5j9j="$(basename "${THIS_LIB_FILE_PATH_t5j9j}")" #...: Replace with native bash function when ready.
-	declare -gr  THIS_LIB_DIR_PATH_t5j9j="$(dirname "${THIS_LIB_FILE_PATH_t5j9j}")" #.....: Replace with native bash function when ready.
-	## Variables
-	declare -gi  wasShown_Version=0
-	declare -gi  wasShown_Copyright=0
-	declare -gi  wasShown_About=0
-	declare -gi  wasShown_Syntax=0
-fi
+#if [[ ! -v doQuietly ]]; then
+#	declare -i doQuietly
+#	declare -i doPromptToContinue
+#	declare    THIS_VERSION                   || :
+#	declare    THIS_BUILD                     || :
+#	declare    THIS_COPYRIGHT_YEARS           || :
+#	declare    THIS_AUTHOR                    || :
+#	declare    LICENSE_SPDX                   || :
+#fi
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+## Functions
+
+##
 ## Show version, copyright, about, syntax
 
 fShowVersion(){
@@ -191,8 +189,9 @@ fShowSyntax(){
 }
 
 
-##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+##
 ## User-prompt-related
+
 fIntroPromptToContinue(){
 	((doQuietly || ! doPromptToContinue)) && return 0
 	local -r extraInfoString="${1:-}"
@@ -200,6 +199,7 @@ fIntroPromptToContinue(){
 	[[ -n "${extraInfoString}" ]] && { fEcho_Clean; fEcho_Clean "${extraInfoString}"; }
 	fPromptYN "Continue? (y|n): " < /dev/tty || { fEcho "User aborted."; return ${ERRNUM_MSG_ALREADY_SHOWN}; }
 }
+
 fPromptYN(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
@@ -208,6 +208,7 @@ fPromptYN(){
 	fEcho_ResetBlankCounter
 	{ [[ "${userAnswer,,}" == "y" ]] && return 0; } || return ${ERRNUM_MSG_ALREADY_SHOWN}
 }
+
 fPressAnyKeyToContinue(){
 	((doQuietly)) && return 0
 	local promptStr="${1:-}"
@@ -218,7 +219,6 @@ fPressAnyKeyToContinue(){
 
 
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
-##
 ## Script initialization
 
 ## Check if sourced
@@ -250,3 +250,4 @@ fIsFunction fShowSyntax_Local                ||  fThrowError "The function 'fSho
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
+##		- 20260614 JC: Cleaned up constant definitions and structure.

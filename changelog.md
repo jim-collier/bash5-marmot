@@ -135,7 +135,7 @@ Since this script is moving towards more idiomatic standards-compliance anyway, 
 
 ## 20250608
 
-- Added handy and robust \_fRemoveOldLogs().
+- Added handy and robust \_fRemoveOldFiles().
 
 ## 20250606-07
 
