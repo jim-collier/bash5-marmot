@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Notes
 
-This is a significant refactor - in scope, but not so much actual effort. It encapsulates many ideas - and addresses some sore spots - that I've wanted to get to for years. Or at least, is a good first step.
+This is a significant refactor - in scope, but not so much actual effort. It encapsulates many ideas - and addresses some sore spots - that I've wanted to get to for years.
 
 It's also a revisit to an idea this library started out as long ago: a dynamic includable library. But the implementation long ago was severely flawed, with a poor understanding at the time of the subtleties of bash script mechanics and gotchas, that only >decade of working with it can hammer into the heads of old programmers that find it hard to let go of "the way things *should* work".
 
@@ -40,17 +40,26 @@ To be fair, it's also difficult to let go of some outmoded ideas of what shell s
 
 ### Added
 
+- Added `install_dev.bash` [20260614]
+
 - Added `install.bash`. [20260526]
+
 - Added functions `fBgrep()` [_a bash-native `grep -E [-iov]`_], `fBgrepQ()` [_bash-native `grep -Eq [-iov]`_], `fBhead()` [_bash-native `head`_], `fIsNameref()`. [20260524]
+
 - CI/CD scripts. [20260519]
 
 ### Changed
 
 - Renamed entire project from clunky "x9bash5-template", to "bash5-marmot". Inner rationale in [Issue #3](https://github.com/jim-collier/bash5-marmot/issues/3). [20260526]
+
 	- Tests and CICD pipeline still works.
+
 - Made `fError*` -related functions simpler and more robust. [20260523]
+
 - Refactored to be modular dynamic libraries instead of one monolithic static template.
+
 	- *There's still a required template though to implement required module interfaces, it's just a much smaller script overall. And modular.*
+
 - Fixed linter errors.
 
 ### Other work
@@ -62,6 +71,7 @@ To be fair, it's also difficult to let go of some outmoded ideas of what shell s
 ### Changed
 
 - Fixed errors highlighted by linter in some docs.
+
 - Added some to-dos.
 
 ## v10.0.0-beta1 - 2025-07-11
