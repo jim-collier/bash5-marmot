@@ -93,4 +93,4 @@ fIsFunction fLoadModule_v1      ||  fThrowError "The function 'fLoadModule_v1' m
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
-##		- 20260614 JC: Cleaned up constant definitions and structure.
+##		- 20260714 JC: Cleaned up constant definitions and structure.

@@ -127,4 +127,4 @@ declare -i isSourced_t5jeb=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
-##		- 20260614 JC: Cleaned up constant definitions and structure.
+##		- 20260714 JC: Cleaned up constant definitions and structure.
