@@ -407,4 +407,4 @@ declare -i isSourced_t5hpa=0; [[ "${BASH_SOURCE[0]}" == "${0}" ]] || isSourced_t
 ##				- Removed passing `$_`, which is unreliable.
 ##				- Smarter console output from fThrowError(), and _fSingleExitPoint().
 ##		- 20260522 JC: Error-handling debugging (the hardest kind of debugging!).
-##		- 20260614 JC: Cleaned up constant definitions and structure.
+##		- 20260714 JC: Cleaned up constant definitions and structure.

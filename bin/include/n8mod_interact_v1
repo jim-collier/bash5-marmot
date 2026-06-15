@@ -250,4 +250,4 @@ fIsFunction fShowSyntax_Local                ||  fThrowError "The function 'fSho
 ##•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
 ## Module history:
 ##		- 20260517 JC: Created.
-##		- 20260614 JC: Cleaned up constant definitions and structure.
+##		- 20260714 JC: Cleaned up constant definitions and structure.

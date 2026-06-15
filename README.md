@@ -203,9 +203,17 @@ By default (which can be changed by downloading and editing the installer before
 
 As a general security "best-practice" (and for no other reason), this is usually the recommended way.
 
-~~~bash
-curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install.bash | bash
-~~~
+- Option 1: Official stable release
+
+	~~~bash
+	curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install.bash | bash
+	~~~
+
+- Option 2: Current dev release (generally perfectly stable)
+
+	~~~bash
+	curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install_dev.bash | bash
+	~~~
 
 ### Install system-wide
 
@@ -213,9 +221,17 @@ The only difference from above, is the `sudo` in front of the `bash` - so that t
 
 This is a convenient long-term approach even for user-level scripts, as the template can remain "immutable" (and copy/renamed to a user directory `$PATH` location for specific implementations), and the read-only modules can just remain in the system location.
 
-~~~bash
-curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install.bash | sudo bash
-~~~
+- Option 1: Official stable release
+
+	~~~bash
+	curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install.bash | sudo bash
+	~~~
+
+- Option 2: Current dev release (generally perfectly stable)
+
+	~~~bash
+	curl -fsSL https://raw.githubusercontent.com/jim-collier/bash5-marmot/main/install_dev.bash | sudo bash
+	~~~
 
 ## Using it
 
