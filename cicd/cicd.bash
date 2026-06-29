@@ -225,7 +225,7 @@ fMain(){
 
 		if [[ -n "${dirAlsoCopyInstall_Subdir_Source}"  &&  -n "${dirAlsoCopyInstall_Subdir_Target}" ]]; then
 			## Show results; also subdir
-			fEcho; fEcho "ls '${filePath_ResultingExecToTestAndInstall}'):"
+			fEcho; fEcho "ls '${dirAlsoCopyInstall_Subdir_Target}'):"
 			ls  -lA  --color=always  --human-readable  --time-style=+"%Y-%m-%d %H:%M:%S"  "${dirAlsoCopyInstall_Subdir_Target%%/}/"
 			fEcho_ResetBlankCounter
 		fi
