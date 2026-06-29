@@ -21,7 +21,7 @@
 ##	Purpose: See fShowAbout_Local() below.
 ##	History: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
 
-##	Template copyright and license info:
+##	Copyright and license:
 ##		x9bash5-template v11.0.0 build 1n1bed5,
 ##		Copyright © 2011-2026 Jim Collier (ID: 1cv◂‡Vᛦ)
 ##		Licensed under The MIT License (MIT). Full text at:
@@ -307,7 +307,7 @@ fResolvePath_v1(){
 	## Common path primitives (listed in order of likelihood and/or desired first-match if in multiple places).
 	local -a tryBaseDirs=("${meDirPath_t4rej}/"  "${meMePath_t4rej}.d/"  "${meDirPath_t4rej}/${meMeName_Simple_t4rej}/"  "${meDirPath_t4rej}/${meMeName_Simple_t4rej}.d/"  "${HOME}/synced/0-0/common/exec/util/linux/bash/"  '/opt/'  '/usr/local/'  '/usr/local/'  "${HOME}/opt/"  "${HOME}/.local/"  "${HOME}/.local/")
 	local -a tryRelSubs1=('include/'  'lib/'  'mod/'  'bin/'  'bin/lib/'  'bin/include/'  'inc/'  'includes/'  'module/'  'modules/'  '')  ## Common generic library subdirs (NOT relative to root), in order of likelihood.
-	local -a tryRelSubs2=(''  'n8/'  'x9/'  "${meMeName_t4rej}/"  "${meMeName_Simple_t4rej}/")
+	local -a tryRelSubs2=(''  'n8/'  'x9/'  'n8mod/'  "${meMeName_t4rej}/"  "${meMeName_Simple_t4rej}/")
 	local -a tryPaths=()
 	## Build common paths to check from primitives (starting with the last path for previous match)
 	[[ -n "${__fResolvePath_v1_PreviousDir}" ]] && tryPaths+=("${__fResolvePath_v1_PreviousDir}/${nameOrPath}")  ## Add previous found dir to the top of the list
