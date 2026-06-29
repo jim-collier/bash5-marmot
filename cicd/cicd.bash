@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #  shellcheck disable=2001  ## 'See if you can use ${variable//search/replace} instead.' Complains about good uses of sed.
 #  shellcheck disable=2016  ## 'Expressions don't expand in single quotes, use double quotes for that.' I know, and I often want an explicit '$'.
 #  shellcheck disable=2034  ## 'variable appears unused.' Complains about valid use of variable indirection (e.g. later use of local -n var=$1)
@@ -34,7 +35,7 @@ if [[ -z "${doQuietly+x}" ]]; then
 	declare    dirPath_Source="${dirPath_Base}/bin"
 	declare    filePath_ResultingExecToTestAndInstall="${dirPath_Base}/bin/bash5-marmot"
 	declare    dirAlsoCopyInstall_Subdir_Source="${dirPath_Base}/bin/include"
-	declare    dirAlsoCopyInstall_Subdir_Target="include"
+	declare    dirAlsoCopyInstall_Subdir_Target="include/n8mod"
 	declare    filePath_TesterExec="${dirPath_Base}/cicd/test.bash"
 	declare    gitAutomationScript="${dirPath_Base}/cicd/utility/n8git_backup-and-publish"
 	declare -a preferredInstallTargetPaths=("${HOME}/synced/0-0/common/exec/util/linux/bash"  "/usr/local/sbin/")  ## First one that exists, wins
