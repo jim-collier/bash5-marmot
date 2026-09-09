@@ -268,5 +268,5 @@ If any such patterns are found in functions that don't have names that suggest s
 
 ## Copyright and license
 
-> Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)<br />
+> Copyright © 2026 Jim Collier [ID: 2უNაɘ«҂թȹɤξπ๙¿ձϖ]<br />
 > Licensed under [The MIT License (MIT)](https://mit-license.org/). No warranty.

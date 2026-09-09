@@ -48,7 +48,7 @@
 ##		  not explicitly part of the function name or obvious and commented purpose (which should be nonexistent).
 ##	History: At bottom of script. (Maintained separately from and/or in addition to, cloud-based version control.)
 
-##	Installer Copyright © 2026 Jim Collier (ID: 1cv◂‡Vᛦ)
+##	Installer Copyright © 2026 Jim Collier [ID: 2უNაɘ«҂թȹɤξπ๙¿ձϖ]
 ##	Licensed under The MIT License (MIT). Full text at:
 ##		https://mit-license.org/
 ##	SPDX-License-Identifier: MIT
