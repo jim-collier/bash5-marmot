@@ -261,10 +261,10 @@ Verdict: 😥. Large executables (at least no runtime installation needed), and 
 
 ### Java (via Groovy, Kotlin)
 
-Your mom or dad's programming language. (Their parents' language was COBOL and FORTRAN.) I have no significant working experience with either, so this is mostly surface-level knowledge:
+Your mom or dad's programming language. (Their parents' language was COBOL and FORTRAN.)
 
 - Pros:
-	- Java is a solid language. Type safety, OO, advanced features, it's all there. Old != bad.
+	- Java is a solid language. Type safety, OO, advanced features, it's all there. Kotlin adds many modern features. Old != bad.
 
 	- JVM performance.
 
@@ -272,7 +272,7 @@ Your mom or dad's programming language. (Their parents' language was COBOL and F
 
 	- Even with Groovy, shell syntax isn't linear or shell-like.
 
-Verdict: ❌. Mostly I just don't want to deal with the heavy Java syntax for system shell scripting. (Though TBF it's not much "worse" than C#, which was "inspired" by Java, and is a nice language.) I also admit to being biased against the Java JVM due to its ownership by Oracle, even though good open-source alternatives exist.
+Verdict: ❌. Mostly I just don't want to deal with the heavy Java syntax for system shell scripting. (Though it's not much "worse" than C#.) I also admit to being biased against the Java JVM due to its ownership by Oracle, even though good open-source alternatives exist - including Kotlin.
 
 ### Rust, C++
 
@@ -283,7 +283,7 @@ There is or used to be a pretty cool C++ shell scripting system. But the cons:
 
 - It's C++. For shell scripting??
 
-- Rust: Too many ways to do things, too steep of a learning curve for shell scripting type tasks, too verbose for scripting. But `rust-script` at least makes scripting possible.
+- Rust: Too many ways to do things, too verbose for scripting. But `rust-script` at least makes scripting possible.
 
 Verdict: 🫪. Who hurt you?
 
